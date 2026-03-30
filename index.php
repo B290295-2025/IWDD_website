@@ -1,4 +1,4 @@
-<?php include 'components/header.php'; ?>
+<?php include 'frontend/components/header.php'; ?>
 
 <!DOCTYPE html>
 <html>
