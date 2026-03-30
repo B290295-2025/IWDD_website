@@ -1,0 +1,21 @@
+body {
+    font-family: Arial;
+    text-align: center;
+}
+
+.nav-bar {
+    padding: 20px;
+}
+
+.github-button {
+    padding: 10px 18px;
+    background-color: #24292e;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.github-button:hover {
+    background-color: #444;
+}
