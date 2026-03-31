@@ -1,0 +1,180 @@
+<?php
+// 1. 联通数据库配置
+require_once __DIR__ . '/../config/database.php';
+
+// 初始化变量，确保全局可用
+$output_data = [];
+$error_message = "";
+$debug_log = "No Python execution triggered.";
+$taxon = $_POST["taxon"] ?? "";
+
+// 2. 核心处理逻辑
+if ($_SERVER["REQUEST_METHOD"] == "POST" && !empty($taxon)) {
+    try {
+        // 第一步：先查 SQL 数据库
+        $stmt = $pdo->prepare("SELECT * FROM protein_data WHERE taxon_group = ?");
+        $stmt->execute([$taxon]);
+        $output_data = $stmt->fetchAll();
+
+        // 第二步：如果数据库为空，则调用 Python 抓取
+        if (empty($output_data)) {
+            $python_exe = "/usr/bin/python3";
+            $script_path = "/localdisk/home/s2845297/public_html/B290295_website/backend/fetch_protein.py";
+            $edirect_path = "/home/s2845297/edirect";
+
+            // 联通点：在命令中强行注入 EDirect 路径，解决 "efetch command not found"
+            $cmd = "export PATH=\$PATH:$edirect_path; $python_exe $script_path " . escapeshellarg($taxon) . " 2>&1";
+            
+            $debug_log = shell_exec($cmd);
+
+            if ($debug_log !== null && trim($debug_log) !== "") {
+                $data = json_decode($debug_log, true);
+
+                if ($data && !isset($data['error'])) {
+                    // 第三步：PHP 负责处理入库
+                    $ins = $pdo->prepare("INSERT IGNORE INTO protein_data 
+                        (taxon_group, accession_id, description, sequence, seq_length) 
+                        VALUES (?, ?, ?, ?, ?)");
+
+                    foreach ($data as $p) {
+                        $ins->execute([
+                            $taxon,
+                            $p['id'],
+                            $p['description'],
+                            $p['sequence'],
+                            $p['length']
+                        ]);
+                    }
+                    // 第四步：存完后重新读取，确保返回前端的数据格式统一
+                    $stmt->execute([$taxon]);
+                    $output_data = $stmt->fetchAll();
+                } else {
+                    $error_message = $data['error'] ?? "Python returned invalid JSON. Check debug log below.";
+                }
+            } else {
+                $error_message = "Python script returned no output. Check permissions or paths.";
+            }
+        }
+    } catch (PDOException $e) {
+        $error_message = "Database Error: " . $e->getMessage();
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Protein Query System</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; display: flex; gap: 20px; }
+        
+        /* 侧边栏样式 */
+        .sidebar { width: 280px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: fit-content; }
+        .main-content { flex: 1; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        /* 按钮样式 */
+        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 14px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; margin-top: 15px; }
+        
+        /* 结果显示 */
+        .protein-card { border-bottom: 1px solid #eee; padding: 15px 0; }
+        .seq-text { font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 12px; margin-top: 10px; border: 1px solid #ddd; }
+        .error-box { background: #fff1f0; border: 1px solid #ffa39e; padding: 15px; border-radius: 5px; color: #cf1322; margin-bottom: 20px; }
+        .debug-box { background: #2d2d2d; color: #9cdcfe; padding: 10px; font-family: monospace; font-size: 11px; margin-top: 20px; overflow: auto; max-height: 150px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <aside class="sidebar">
+        <h3>View Controls</h3>
+        <hr>
+        <label>Min Sequence Length:</label>
+        <input type="number" id="lenFilter" style="width: 90%; padding: 8px; margin: 10px 0;">
+        
+        <label>Display Limit:</label>
+        <select id="countLimit" style="width: 100%; padding: 8px; margin: 10px 0;">
+            <option value="10">Top 10</option>
+            <option value="5">Top 5</option>
+            <option value="2">Top 2</option>
+        </select>
+        
+        <button class="btn btn-primary" style="width: 100%;" onclick="applyFilters()">Apply Filters</button>
+
+        <a href="index.php" class="btn btn-secondary" style="width: 88%; text-align: center;">← Back to Home</a>
+    </aside>
+
+    <div class="main-content">
+        <h2>Protein Sequence Explorer</h2>
+        
+        <?php if ($error_message): ?>
+            <div class="error-box">
+                <strong>System Error:</strong> <?php echo htmlspecialchars($error_message); ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="post">
+            <select name="taxon" style="padding: 10px; width: 70%;" required>
+                <option value="" disabled <?php echo empty($taxon) ? 'selected' : ''; ?>>-- Select Protein Group --</option>
+                <option value="aves_g6p" <?php echo $taxon == 'aves_g6p' ? 'selected' : ''; ?>>Aves (Birds) - G6P Proteins</option>
+                <option value="mammal_abc" <?php echo $taxon == 'mammal_abc' ? 'selected' : ''; ?>>Mammals - ABC Transporters</option>
+                <option value="rodent_kinase" <?php echo $taxon == 'rodent_kinase' ? 'selected' : ''; ?>>Rodents - Kinases</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Run Search</button>
+        </form>
+
+        <div id="results">
+            <?php if (!empty($output_data)): ?>
+                <div style="margin-top: 30px;">
+                    <h4>Found <?php echo count($output_data); ?> records:</h4>
+                    <div id="cardsContainer"></div>
+                </div>
+            <?php elseif ($_SERVER["REQUEST_METHOD"] == "POST"): ?>
+                <p style="margin-top: 20px; color: #888;">No results found for this query.</p>
+            <?php endif; ?>
+        </div>
+
+        <?php if (!empty($debug_log) && $_SERVER["REQUEST_METHOD"] == "POST"): ?>
+            <div class="debug-box">
+                <strong>Raw Python Output:</strong><br>
+                <?php echo htmlspecialchars($debug_log); ?>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<script>
+    // 联通点：PHP 传回的数据
+    const rawData = <?php echo json_encode($output_data); ?>;
+    const container = document.getElementById('cardsContainer');
+
+    function renderCards(data) {
+        if (!container) return;
+        container.innerHTML = data.map(item => `
+            <div class="protein-card">
+                <strong>${item.accession_id}</strong> 
+                <span style="color: #666; font-size: 0.9em;">(Length: ${item.seq_length} aa)</span><br>
+                <small style="color: #444;">${item.description}</small>
+                <div class="seq-text">${item.sequence.substring(0, 120)}...</div>
+            </div>
+        `).join('');
+    }
+
+    function applyFilters() {
+        const minLen = parseInt(document.getElementById('lenFilter').value) || 0;
+        const limit = parseInt(document.getElementById('countLimit').value);
+        
+        let filtered = rawData.filter(d => d.seq_length >= minLen);
+        filtered = filtered.slice(0, limit);
+        renderCards(filtered);
+    }
+
+    // 初始化渲染
+    if (rawData.length > 0) renderCards(rawData);
+</script>
+
+</body>
+</html>

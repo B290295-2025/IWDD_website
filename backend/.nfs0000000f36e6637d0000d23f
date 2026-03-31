@@ -1,0 +1,52 @@
+import sys
+import requests
+
+# 获取参数
+if len(sys.argv) < 2:
+    print("No taxon provided")
+    sys.exit()
+
+taxon = sys.argv[1]
+
+# 查询定义
+queries = {
+    "glucose-6-phosphatase proteins from Aves (birds)": "KAJ7421106.1, KAJ7396366.1, KAI6072612.1, KAI1230272.1,  XP_040473657.1,  XP_040392851.1, XP_039553177.1, XP_010411101.1,   XP_027601652.2, XP_038019160.1",
+    "ABC transporters in mammals": "Q9H8K7.2, KAF6316944.1, KAF6316942.1, KAF6107712.1, NP_001399719.1, 3ZDQ_A , NP_001116146.1, NP_076221.1,NP_038482.3,  NP_001020262.1",
+    "kinases in rodents": "S43987,P61025.1,XP_080560003.1,XP_080546422.1,XP_078973293.1,KAM4874156.1,KAM4873688.1,XP_069870013.1,XP_081135560.1,XP_069870013.1",
+    "adenyl cyclases in vertebrates": "QKE59411.1,CAC39962.1,CAN2389089.1, KAK2091232.1,CAH2273680.1,KAF5896945.1,ALO19545.1,ALO19543.1,CAA52282.1,NP_001315425.1"
+}
+
+query = queries.get(taxon, "")
+
+if not query:
+    print("Invalid selection")
+    sys.exit()
+
+# esearch
+esearch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+params = {
+    "db": "protein",
+    "term": query,
+    "retmax": 5,
+    "retmode": "json"
+}
+
+res = requests.get(esearch_url, params=params)
+data = res.json()
+
+ids = data["esearchresult"]["idlist"]
+
+# efetch
+if ids:
+    efetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+    params = {
+        "db": "protein",
+        "id": ",".join(ids),
+        "rettype": "fasta",
+        "retmode": "text"
+    }
+
+    res = requests.get(efetch_url, params=params)
+    print(res.text)
+else:
+    print("No results found")

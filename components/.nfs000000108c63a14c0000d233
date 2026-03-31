@@ -1,0 +1,18 @@
+<div class="nav-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px;">
+    <div class="nav-left">
+        <a href="<?php echo BASE_URL; ?>index.php" class="nav-logo" style="text-decoration: none; font-weight: bold; color: #333; font-size: 1.2rem;">
+            🧬 BioSeq Home
+        </a>
+    </div>
+
+    <div class="nav-right" style="display: flex; gap: 20px; align-items: center;">
+        <a href="<?php echo BASE_URL; ?>pages/protein_query.php" class="nav-link" style="text-decoration: none; color: #0366d6; font-weight: 500;">
+            Protein Search
+        </a>
+
+        <a href="https://github.com/B290295-2025/IWDD_website" target="_blank" class="github-button" style="background: #24292e; color: white; padding: 8px 15px; border-radius: 6px; text-decoration: none; font-size: 14px;">
+            🔗 View on GitHub
+        </a>
+    </div>
+</div>
+<hr style="border: 0; height: 1px; background: #eee; margin: 0;">

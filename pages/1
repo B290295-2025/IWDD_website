@@ -1,0 +1,43 @@
+<?php
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $taxon = escapeshellarg($_POST["taxon"]);
+    $output = shell_exec("python3 " . __DIR__ . "/../backend/fetch_protein.py $taxon");
+}
+?>
+
+<?php include __DIR__ . '/../components/header.php'; ?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Protein Query</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+
+<body>
+
+<h2>Protein Query</h2>
+
+<form method="post">
+    <select name="taxon">
+        <option value="aves">Aves</option>
+        <option value="mammals">Mammals</option>
+        <option value="rodents">Rodents</option>
+        <option value="vertebrates">Vertebrates</option>
+    </select>
+
+    <button type="submit">Search</button>
+</form>
+
+<hr>
+
+<pre>
+<?php
+if (isset($output)) {
+    echo $output;
+}
+?>
+</pre>
+
+</body>
+</html>

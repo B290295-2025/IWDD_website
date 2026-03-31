@@ -1,0 +1,88 @@
+import sys
+import subprocess
+import json
+import re
+
+def fetch_via_edirect(taxon_key):
+    """
+    Executes Bash EDirect commands and returns parsed list of dicts.
+    """
+    # Map your dropdown values to NCBI search terms
+    query_map = {
+        "aves_g6p": "glucose-6-phosphatase [PROT] AND Aves [ORGN]",
+        "mammal_abc": "ABC transporter [PROT] AND Mammalia [ORGN]",
+        "rodent_kinase": "kinase [PROT] AND Rodentia [ORGN]",
+        "vertebrate_ac": "adenyl cyclase [PROT] AND Vertebrata [ORGN]"
+    }
+    
+    query = query_map.get(taxon_key, "protein")
+   ED_PATH = "/home/s2845297/edirect"
+   ESEARCH = f"{ED_PATH}/esearch"
+   EFETCH = f"{ED_PATH}/efetch"
+
+    # Construct the Bash command: esearch | efetch
+    # We use -format fasta to get the sequences
+    bash_command = f"{ESEARCH} -db protein -query '{query}' | efetch -format fasta"
+    
+    try:
+        # Run the bash command from Python
+        process = subprocess.Popen(
+                bash_command, 
+                shell=True, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE, 
+                text=True)
+        stdout, stderr = process.communicate()
+        if not stdout:
+            error_msg = stderr.strip() if stderr else "NCBI returned empty results (no match found)."
+            return {"error": f"EDirect Failure: {error_msg}"}
+        # Simple Regex Parser for FASTA (Manual parsing to avoid BioPython dependency)
+        results = []
+        entries = stdout.split(">")
+        for entry in entries:
+            hentry = entry.strip()
+            if not entry:
+                continue
+                
+            lines = entry.splitlines() # aotomatic process \n or \r\n
+            if not lines:
+                continue
+            header = lines[0]
+            sequence = "".join(lines[1:]).replace("","").upper()
+            accession = header.split(" ")[0] if header else "Unknown"
+            
+            results.append({
+                "id": accession,
+                "description": header,
+                "sequence": sequence,
+                "length": len(sequence)
+            })
+            
+        return results
+except Exception as e:
+        # return the inside error
+        return {"error": f"Internal Python Error: {str(e)}"}
+
+if __name__ == "__main__":
+    # pretend charater error
+    import sys
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+    if len(sys.argv) < 2:
+        print(json.dumps({"error": "No taxon provided"}))
+        sys.exit(1)
+
+    try:
+        taxon_input = sys.argv[1]
+        data = fetch_via_edirect(taxon_input)
+        
+        # check: why not obtain the fetch_file
+        if data is None:
+            print(json.dumps({"error": "fetch_via_edirect returned None"}))
+        else:
+            # only print this line, ensure php only got JSON format files.
+            print(json.dumps(data))
+            
+    except Exception as fatal_e:
+        print(json.dumps({"error": f"Fatal Script Error: {str(fatal_e)}"}))
