@@ -229,7 +229,9 @@ if (!empty($taxon) && !empty($protein)) {
                             <strong><?= htmlspecialchars($row['accession_id']) ?></strong><br>
 
                             <!-- ✅ 正确路径 -->
-                            <a href="prosite_scan.php?accession=<?= urlencode($row['accession_id']) ?>"
+			    <a href="prosite_scan.php?accession=<?= urlencode($row['accession_id']) ?>&taxon=<?= urlencode($taxon) ?>
+&protein=<?= urlencode($protein) ?>
+<?php foreach ($selected_ids as $id): ?>&selected[]=<?= urlencode($id) ?><?php endforeach; ?>"
                                class="scan-link">
                                Scan Motifs
                             </a>

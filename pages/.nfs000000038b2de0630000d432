@@ -3,9 +3,7 @@
 $dsn = "mysql:host=127.0.0.1;dbname=s2845297_website;charset=utf8mb4";
 $user = "s2845297";
 $pass = "YuQ1LiN030709!";
-$selected_ids = $_GET['selected'] ?? [];
-$taxon = $_GET['taxon'] ?? '';
-$protein = $_GET['protein'] ?? '';
+
 try {
     $conn = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 } catch (PDOException $e) {
@@ -71,11 +69,7 @@ include __DIR__ . '/../layout.php';
 <div class="page-container">
     <h2>PROSITE Motif Analysis</h2>
     <a href="protein_query.php" class="back-button">← Back to Query</a>
-    <a href="protein_query.php?taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>
-    <?php foreach ($selected_ids as $id): ?>&selected[]=<?= urlencode($id) ?><?php endforeach; ?>"
-    class="back-button">
-    ← Back to Selected Proteins
-    </a>
+
     <?php if ($protein_info): ?>
         <div class="card">
             <h3>Protein: <?= htmlspecialchars($protein_info['accession_id']) ?></h3>
