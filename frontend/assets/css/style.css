@@ -456,3 +456,8 @@ input[type="text"]:focus {
     visibility: visible;
 }
 
+#tree {
+    width: 100%;
+    height: 500px;
+    border: 1px solid #ccc;
+}

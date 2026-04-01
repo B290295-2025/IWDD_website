@@ -18,35 +18,9 @@
     <div class="row">
         <div class="card">
             <div class="card-icon"></div>
-            <h3>Protein Query</h3>
+            <h3>Start Analysis</h3>
             <p>Search NCBI or paste sequences to begin your workflow.</p>
             <a href="pages/protein_query.php" class="enter-button">Enter</a>
-        </div>
-
-	<div class="card">
-            	<h3>MSA Analysis</h3>
-            	<p>Run multiple sequence alignment</p>
-            	<a href="pages/protein_query.php" class="enter-button">Enter</a>
-        </div>
-
-                <div class="card">
-            <h3>Build Phylogenetic Tree</h3>
-            <p>Upload alignment file</p>
-            <a href="pages/tree_upload.php" class="enter-button">Enter</a>
-        </div>
-    </div>
-
-    <div class="row" style="margin-top: 20px;">
-        <div class="card">
-            <h3>PROSITE Scan</h3>
-            <p>Scan motifs in proteins</p>
-            <a href="pages/protein_query.php" class="enter-button">Enter</a>
-        </div>
-
-        <div class="card">
-            <h3>EMBOSS Analysis</h3>
-            <p>Run EMBOSS tools</p>
-            <a href="pages/emboss.php" class="enter-button">Enter</a>
         </div>
 
         <div class="card">
@@ -62,7 +36,9 @@
             <p>View your previous analysis results and sessions.</p>
             <a href="pages/history.php" class="enter-button">Enter</a>
         </div>
+    </div>
 
+    <div class="row" style="margin-top: 20px;">
         <div class="card">
             <div class="card-icon"></div>
             <h3>Credits & Statement</h3>
@@ -76,9 +52,8 @@
             <p>View the project repository and documentation on GitHub.</p>
             <a href="https://github.com/B290295-2025/IWDD_website" target="_blank" class="enter-button">GitHub</a>
         </div>
-
-
         
+        <div class="card" style="visibility: hidden;"></div>
     </div>
 </div>
 

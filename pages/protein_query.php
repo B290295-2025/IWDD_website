@@ -142,6 +142,7 @@ if (!empty($taxon) && !empty($protein)) {
 
 <?php include __DIR__ . '/../components/header.php'; ?>
 
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -175,7 +176,7 @@ if (!empty($taxon) && !empty($protein)) {
     </form>
 
     <small>
-        Examples of Taxon:Mammalia, Rodentia, Aves, cat | Examples of Protein: kinase, ABC-transporter, nuclease
+        Examples of Taxon:Mammalia, Rodentia, Aves, cat | Examples of Protein: kinase, ABC-transporter, adenylyl
     </small>
 
     <hr>

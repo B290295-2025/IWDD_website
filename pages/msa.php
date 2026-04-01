@@ -165,6 +165,7 @@ if (!empty($msa_result) && strpos($msa_result, "Error:") !== 0) {
 }
 ?>
 
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -212,7 +213,7 @@ include __DIR__ . '/../layout.php';
             <input type="hidden" name="taxon" value="<?= htmlspecialchars($taxon) ?>">
             <input type="hidden" name="protein" value="<?= htmlspecialchars($protein) ?>">
 
-            <button class="enter-button">PROSITE Scan Selected</button>
+            <button class="enter-button">Motifs Scan</button>
         </form>
 
         <br>
@@ -223,7 +224,7 @@ include __DIR__ . '/../layout.php';
                 <input type="hidden" name="selected[]" value="<?= htmlspecialchars($id) ?>">
             <?php endforeach; ?>
 
-            <button class="enter-button">Build Tree</button>
+            <button class="enter-button">Phylogenetic Tree</button>
         </form>
 
 	<?php endif; ?>
@@ -240,13 +241,38 @@ include __DIR__ . '/../layout.php';
         <?php if (!empty($msa_result)): ?>
 
 	    <div class="msa-header">
-                <?php if (!empty($download_file)): ?>
-                    <a href="msa.php?download=<?= urlencode($download_file) ?>" class="download-btn">
-                        Download Alignment
-                    </a>
-                <?php endif; ?>
-            </div>
 
+	        <!-- 下载 -->
+	        <?php if (!empty($download_file)): ?>
+	            <a href="msa.php?download=<?= urlencode($download_file) ?>" class="download-btn">
+	                Download Alignment
+	            </a>
+	        <?php endif; ?>
+
+	        <br><br>
+
+	        <!-- PROSITE -->
+	        <form method="get" action="protein_query.php" style="display:inline;">
+	            <?php foreach ($selected_ids as $id): ?>
+	                <input type="hidden" name="selected[]" value="<?= htmlspecialchars($id) ?>">
+	            <?php endforeach; ?>
+
+	            <input type="hidden" name="taxon" value="<?= htmlspecialchars($taxon) ?>">
+	            <input type="hidden" name="protein" value="<?= htmlspecialchars($protein) ?>">
+
+		    <button class="enter-button">Motifs Scan</button>
+	        </form>
+
+	        <!-- TREE -->
+	        <form method="post" action="tree.php" style="display:inline;">
+	            <?php foreach ($selected_ids as $id): ?>
+	                <input type="hidden" name="selected[]" value="<?= htmlspecialchars($id) ?>">
+	            <?php endforeach; ?>
+
+		    <button class="enter-button">Phylogenetic Tree</button>
+		</form>
+
+	    </div>
             <div class="msa-box">
                 <?= render_msa_html($msa_result) ?>
             </div>

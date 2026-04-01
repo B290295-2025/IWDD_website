@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="/frontend/assets/css/style.css">
+    <title><?= $title ?? 'BioSeq Platform' ?></title>
+    <link rel="stylesheet" href="/~s2845297/B290295_website/frontend/assets/css/style.css">
 </head>
 <body>
 
 <?php include __DIR__ . '/components/header.php'; ?>
 
-<div class="page-container">
+<div class="main-content">
     <?= $content ?>
 </div>
 

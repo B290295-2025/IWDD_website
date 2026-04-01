@@ -10,6 +10,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['aln_file'])) {
 }
 ?>
 
+<?php ob_start(); ?>
+<?php
+$content = ob_get_clean();
+include __DIR__ . '/../layout.php';
+?>
+
 <!DOCTYPE html>
 <html>
 <head>

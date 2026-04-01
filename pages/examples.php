@@ -1,2 +1,6 @@
-<h2>Coming Soon</h2>
-<a href="../index.php">Back to Home</a>
+<?php ob_start(); ?>
+<?php
+$content = ob_get_clean();
+include __DIR__ . '/../layout.php';
+?>
+
