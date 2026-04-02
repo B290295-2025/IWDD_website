@@ -17,7 +17,7 @@ include __DIR__ . '/../layout.php';
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <title>Upload Alignment</title>
 <link rel="stylesheet" href="/~s2845297/B290295_website/frontend/assets/css/style.css">

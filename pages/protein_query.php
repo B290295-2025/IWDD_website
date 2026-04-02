@@ -138,6 +138,17 @@ if (!empty($taxon) && !empty($protein)) {
         }
     }
 }
+
+
+if (!empty($taxon) && !empty($protein)) {
+
+    $history = $conn->prepare(
+        "INSERT INTO analysis_history (taxon, protein, action)
+         VALUES (?, ?, 'QUERY')"
+    );
+    $history->execute([$taxon, $protein]);
+}
+
 ?>
 
 <?php include __DIR__ . '/../components/header.php'; ?>

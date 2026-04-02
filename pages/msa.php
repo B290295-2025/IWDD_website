@@ -56,6 +56,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['selected'])) {
     }
 }
 
+if (!empty($selected_ids)) {
+
+    $history = $conn->prepare(
+        "INSERT INTO analysis_history (taxon, protein, selected_ids, action)
+         VALUES (?, ?, ?, 'MSA')"
+    );
+
+    $history->execute([
+        $_POST['taxon'] ?? '',
+        $_POST['protein'] ?? '',
+        implode(',', $selected_ids)
+    ]);
+}
+
 // ---------------------------
 // 可视化函数
 // ---------------------------
