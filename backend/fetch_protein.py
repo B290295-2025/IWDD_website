@@ -30,7 +30,7 @@ try:
     handle = Entrez.esearch(
         db="protein",
         term=query,
-        retmax=10
+        retmax=150
     )
     record = Entrez.read(handle)
     handle.close()

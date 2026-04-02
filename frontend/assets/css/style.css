@@ -461,7 +461,6 @@ input[type="text"]:focus {
     height: 600px;
     border: 1px solid #ccc;
     background: #fff;
-    overflow: auto;
 }
 
 body {
@@ -485,3 +484,4 @@ pre {
     overflow-x: auto;
     max-width: 100%;
 }
+

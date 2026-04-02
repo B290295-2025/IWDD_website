@@ -3,35 +3,38 @@
         <a href="/~s2845297/B290295_website/index.php">Home</a>
 
 	<a href="/~s2845297/B290295_website/pages/protein_query.php">Protein Query</a>
-	<a href="/~s2845297/B290295_website/pages/msa.php">MSA</a>
+	<a href="/~s2845297/B290295_website/pages/protein_query.php">MSA</a>
 
-        <a href="/~s2845297/B290295_website/pages/prosite_scan.php">PROSITE Scan</a>
+        <a href="/~s2845297/B290295_website/pages/protein_query.php">PROSITE Scan</a>
 
         <a href="/~s2845297/B290295_website/pages/tree_upload.php">Phylogenetic Tree</a>
 
         <a href="/~s2845297/B290295_website/pages/emboss.php">EMBOSS</a>
 
-	<a href="/~s2845297/B290295_website/pages/examples.php">Examples</a>
-
 	<a href="/~s2845297/B290295_website/pages/history.php">History</a>
-
-	<a href="/~s2845297/B290295_website/pages/credits_statement.php">Credits Statement</a>
     </div>
-
-    <a href="https://github.com/B290295-2025/IWDD_website" target="_blank" class="github-button">
-        <img src="https://github.com/fluidicon.png" alt="GH" style="width:16px; vertical-align:middle; margin-right:5px;">
-        GitHub
-    </a>
+    <div class="right">
+    	<a href="/~s2845297/B290295_website/pages/examples.php">Example</a>
+    	<a href="/~s2845297/B290295_website/pages/credits_statement.php">Credit Statement</a>
+    	<a href="/~s2845297/B290295_website/pages/help.php">Help/Context</a>
+    	<a href="/~s2845297/B290295_website/pages/about.php">About</a>
+    	<a href="https://github.com/B290295-2025/IWDD_website" target="_blank" class="github-button">
+        	<img src="https://github.com/fluidicon.png" alt="GH" style="width:16px; vertical-align:middle; margin-right:5px;">
+       	 GitHub
+    	</a>
+    </div>
 </div>
 
 <style>
 /* 确保导航栏布局正确 */
+
 .nav-bar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 20px;
-    background-color: #4a5f7e; /* 沿用你的主题色 */
+    gap: 10px; /* 控制间距 */
+}
+.nav-bar .right {
+    margin-left: auto;
 }
 .nav-links a {
     color: white;

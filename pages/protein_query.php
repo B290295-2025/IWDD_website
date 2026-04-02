@@ -27,7 +27,11 @@ $protein = trim($protein);
 
 $error_message = '';
 $data = [];
+$page = $_GET['page'] ?? 1;
+$page = max(1, intval($page));
 
+$limit = 10;
+$offset = ($page - 1) * $limit;
 // ---------------------------
 // 排序
 // ---------------------------
@@ -130,7 +134,8 @@ if (!empty($taxon) && !empty($protein)) {
                 "SELECT accession_id, description, seq_length, taxon_group
                  FROM protein_data
                  WHERE taxon_group = ? AND protein_name = ?
-                 ORDER BY $sort $order"
+		 ORDER BY $sort $order
+		 LIMIT $limit OFFSET $offset"
             );
 
             $stmt->execute([$taxon, $protein]);
@@ -256,6 +261,14 @@ if (!empty($taxon) && !empty($protein)) {
                 <?php endforeach; ?>
                 </tbody>
             </table>
+	    <div class="pagination">
+
+            <a href="?page=1&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>">First</a>
+            <a href="?page=<?= max(1,$page-1) ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>">Prev</a>
+
+            <a href="?page=<?= $page+1 ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>">Next</a>
+
+            </div>
 
             <button type="submit" class="enter-button" id="msaBtn">
                 Run MSA

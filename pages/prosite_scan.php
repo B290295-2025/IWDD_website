@@ -85,7 +85,10 @@ include __DIR__ . '/../layout.php';
             <p><strong>Length:</strong> <?= $protein_info['seq_length'] ?> aa</p>
         </div>
 
-        <h3>Functional Architecture</h3>
+	<h3>Functional Architecture</h3>
+	<p>
+	Hover over the block to view details
+	</p>
 	<div class="motif-bar-container">
 		<?php
 		$seq_len = $protein_info['seq_length'];
@@ -108,8 +111,32 @@ include __DIR__ . '/../layout.php';
 		    </div>
 		<?php endforeach; ?>
 	</div>
+	<p>
+Phospho site in orange; Glyco site in purple; Others in blue
+        </p>
 
-        <h3>Detected Motifs</h3>
+	<h3>Functional Insights</h3>
+
+	<?php if (!empty($results)): ?>
+
+	<p>
+	1.High-confidence site:
+Detected motif <?= $results[0]['name'] ?> with strong conservation → candidate functional hotspot.
+	</p>
+
+	<p>
+	 2.Evolution insight:
+Motif conserved across species suggests essential biological role.
+	</p>
+
+	<p>
+	 3.Structural hint:
+Regions with low conservation may indicate flexible loops.
+	</p>
+
+	<?php endif; ?>
+	
+	<h3>Detected Motifs</h3>
         <table class="result-table">
             <thead>
                 <tr>

@@ -49,12 +49,6 @@
             <a href="pages/emboss.php" class="enter-button">Enter</a>
         </div>
 
-        <div class="card">
-            <div class="card-icon"></div>
-            <h3>Examples</h3>
-            <p>Explore pre-loaded protein analysis workflows.</p>
-            <a href="pages/examples.php" class="enter-button">Enter</a>
-        </div>
 
         <div class="card">
             <div class="card-icon"></div>
@@ -63,19 +57,7 @@
             <a href="pages/history.php" class="enter-button">Enter</a>
         </div>
 
-        <div class="card">
-            <div class="card-icon"></div>
-            <h3>Credits & Statement</h3>
-            <p>Project documentation, methods, and academic credits.</p>
-            <a href="pages/credits_statement.php" class="enter-button">Enter</a>
-        </div>
 
-        <div class="card">
-            <div class="card-icon"></div>
-            <h3>Source Code</h3>
-            <p>View the project repository and documentation on GitHub.</p>
-            <a href="https://github.com/B290295-2025/IWDD_website" target="_blank" class="enter-button">GitHub</a>
-        </div>
 
 
         

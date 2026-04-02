@@ -19,22 +19,30 @@ foreach ($data as $r) {
     $fasta .= $r['sequence'] . "\n";
 }
 
-$file = "/tmp/tree_" . uniqid() . ".fasta";
-file_put_contents($file, $fasta);
+// 1️⃣ 写 FASTA
+$fasta_file = "/tmp/tree_" . uniqid() . ".fasta";
+file_put_contents($fasta_file, $fasta);
 
-$cmd = "/usr/bin/python3 " . __DIR__ . "/../backend/tree.py $file 2>&1";
+// 2️⃣ 先做 MSA（关键！）
+$msa_cmd = "/usr/bin/python3 " . __DIR__ . "/../backend/msa.py " . $fasta_file;
+$msa_output = shell_exec($msa_cmd);
+
+// 🔥 提取 alignment 文件（重新跑一次 clustal 输出 fasta）
+$aln_file = "/tmp/aln_" . uniqid() . ".fasta";
+
+exec("clustalo -i $fasta_file -o $aln_file --force --outfmt=fasta");
+
+// 3️⃣ 再构建 tree
+$cmd = "/usr/bin/python3 " . __DIR__ . "/../backend/tree.py $aln_file 2>&1";
 $newick = trim(shell_exec($cmd));
 
-// 🔥 清理换行（关键）
+// 清理
 $newick = str_replace(["\n", "\r"], '', $newick);
-
 $history = $conn->prepare(
     "INSERT INTO analysis_history (selected_ids, action)
      VALUES (?, 'TREE')"
 );
 
-$history->execute([implode(',', $selected_ids)]);
-<pre><?= htmlspecialchars($newick) ?></pre>
 ?>
 <?php ob_start(); ?>
 
@@ -52,17 +60,12 @@ $history->execute([implode(',', $selected_ids)]);
 <h2>Phylogenetic Tree</h2>
 <div id="tree"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/phylotree@1.0.0/phylotree.min.js"></script>
+<script src="https://unpkg.com/phylotree@1.0.0/dist/phylotree.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
+let newick = <?= json_encode($newick) ?>;
 
-    let newick = `<?= $newick ?>`;
-
-    if (!newick || newick.startsWith("Error")) {
-        document.getElementById("tree").innerHTML = "Tree generation failed";
-        return;
-    }
+document.addEventListener("DOMContentLoaded", function () {
 
     let tree = new phylotree.phylotree(newick);
 
@@ -70,6 +73,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 });
 </script>
+<pre><?= htmlspecialchars($newick) ?></pre>
 <?php
 $content = ob_get_clean();
 include __DIR__ . '/../layout.php';

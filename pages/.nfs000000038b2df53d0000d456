@@ -177,6 +177,33 @@ if (!empty($msa_result) && strpos($msa_result, "Error:") !== 0) {
     file_put_contents("/tmp/" . $filename, $msa_result);
     $download_file = $filename;
 }
+
+//Conservation Score//
+function calc_conservation($msa) {
+
+    $lines = explode("\n", $msa);
+    $seqs = [];
+
+    foreach ($lines as $line) {
+        if (preg_match('/^(\S+)\s+([A-Z\-]+)/', $line, $m)) {
+            $seqs[$m[1]] .= $m[2];
+        }
+    }
+
+    $length = strlen(current($seqs));
+    $scores = [];
+
+    for ($i = 0; $i < $length; $i++) {
+        $col = [];
+        foreach ($seqs as $s) {
+            $col[] = $s[$i] ?? '-';
+        }
+        $unique = array_unique($col);
+        $scores[] = 1 - (count($unique) / count($col));
+    }
+
+    return $scores;
+}
 ?>
 
 
@@ -290,7 +317,24 @@ include __DIR__ . '/../layout.php';
             <div class="msa-box">
                 <?= render_msa_html($msa_result) ?>
             </div>
+	    <canvas iid="consChart"></canvas>
 
+	    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+	    <script>
+	    let scores = <?= json_encode(calc_conservation($msa_result)) ?>;
+
+	    new Chart(document.getElementById('consChart'), {
+	        type: 'line',
+	        data: {
+	            labels: scores.map((_, i) => i+1),
+	            datasets: [{
+	                label: 'Conservation Score',
+	                data: scores
+	            }]
+	        }
+	    });
+	    </script>
         <?php endif; ?>
 
     </div>
@@ -299,3 +343,4 @@ include __DIR__ . '/../layout.php';
 
 </body>
 </html>
+
