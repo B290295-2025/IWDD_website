@@ -18,20 +18,22 @@ try {
 // ---------------------------
 // 参数获取
 // ---------------------------
-$taxon = $_POST['taxon'] ?? $_GET['taxon'] ?? '';
-$protein = $_POST['protein'] ?? $_GET['protein'] ?? '';
+$taxon = trim($_POST['taxon'] ?? $_GET['taxon'] ?? '');
+$protein = trim($_POST['protein'] ?? $_GET['protein'] ?? '');
 $selected_ids = $_GET['selected'] ?? [];
-
-$taxon = trim($taxon);
-$protein = trim($protein);
 
 $error_message = '';
 $data = [];
-$page = $_GET['page'] ?? 1;
-$page = max(1, intval($page));
 
+// ---------------------------
+// 分页
+// ---------------------------
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $limit = 10;
 $offset = ($page - 1) * $limit;
+$total_rows = 0;
+$total_pages = 1;
+
 // ---------------------------
 // 排序
 // ---------------------------
@@ -42,24 +44,28 @@ $order = $_GET['order'] ?? 'asc';
 $order = $order === 'desc' ? 'desc' : 'asc';
 
 // ---------------------------
+// 表单校验
+// ---------------------------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($taxon) && empty($protein)) {
+    $error_message = "Please enter at least one search term: taxon or protein.";
+}
+
+// ---------------------------
 // 查询逻辑
 // ---------------------------
-if (!empty($taxon) && !empty($protein)) {
+if (( !empty($taxon) || !empty($protein) ) || !empty($selected_ids)) {
 
-    // 只有在没有 selected_ids 时才触发抓取
-    if (empty($selected_ids)) {
+    // 只有 taxon 和 protein 都填写时，才远程抓取并缓存
+    if (!empty($taxon) && !empty($protein) && empty($selected_ids)) {
 
-        // 检查缓存
         $stmt = $conn->prepare(
-            "SELECT COUNT(*) FROM protein_data 
+            "SELECT COUNT(*) FROM protein_data
              WHERE taxon_group = ? AND protein_name = ?"
         );
         $stmt->execute([$taxon, $protein]);
         $count = $stmt->fetchColumn();
 
-        // 没有缓存 → 调 Python
         if ($count == 0) {
-
             $cmd = "/usr/bin/python3 " . __DIR__ . "/../backend/fetch_protein.py "
                  . escapeshellarg($taxon) . " "
                  . escapeshellarg($protein) . " 2>&1";
@@ -69,7 +75,6 @@ if (!empty($taxon) && !empty($protein)) {
             if (!$fasta || stripos($fasta, 'Error') !== false) {
                 $error_message = $fasta ?: "Error fetching data from NCBI";
             } else {
-
                 $entries = explode(">", $fasta);
 
                 $insertStmt = $conn->prepare(
@@ -79,7 +84,6 @@ if (!empty($taxon) && !empty($protein)) {
                 );
 
                 foreach ($entries as $entry) {
-
                     if (trim($entry) == "") continue;
 
                     $lines = explode("\n", $entry);
@@ -88,7 +92,6 @@ if (!empty($taxon) && !empty($protein)) {
 
                     preg_match('/^(\S+)/', $header, $match);
                     $accession_id = $match[1] ?? '';
-
                     $seq_length = strlen($sequence);
 
                     if (!$accession_id || !$sequence) continue;
@@ -107,57 +110,84 @@ if (!empty($taxon) && !empty($protein)) {
     }
 
     // ---------------------------
-    // 数据读取（两种模式）
+    // 数据读取
     // ---------------------------
-
     if (empty($error_message)) {
 
-        // ⭐ 模式1：只显示选中序列（从 MSA 返回）
         if (!empty($selected_ids)) {
-
+            // 从 MSA 返回，只显示选中的序列
             $placeholders = implode(',', array_fill(0, count($selected_ids), '?'));
 
+            $countStmt = $conn->prepare(
+                "SELECT COUNT(*) 
+                 FROM protein_data
+                 WHERE accession_id IN ($placeholders)"
+            );
+            $countStmt->execute($selected_ids);
+            $total_rows = (int)$countStmt->fetchColumn();
+            $total_pages = max(1, ceil($total_rows / $limit));
+
             $stmt = $conn->prepare(
-                "SELECT accession_id, description, seq_length, taxon_group
+                "SELECT accession_id, description, seq_length, taxon_group, protein_name
                  FROM protein_data
                  WHERE accession_id IN ($placeholders)
-                 ORDER BY $sort $order"
+                 ORDER BY $sort $order
+                 LIMIT $limit OFFSET $offset"
             );
-
             $stmt->execute($selected_ids);
             $data = $stmt->fetchAll();
 
         } else {
+            // 动态 where
+            $where = [];
+            $params = [];
 
-            // ⭐ 模式2：正常查询
-            $stmt = $conn->prepare(
-                "SELECT accession_id, description, seq_length, taxon_group
-                 FROM protein_data
-                 WHERE taxon_group = ? AND protein_name = ?
-		 ORDER BY $sort $order
-		 LIMIT $limit OFFSET $offset"
-            );
+            if (!empty($taxon)) {
+                $where[] = "taxon_group LIKE ?";
+                $params[] = "%" . $taxon . "%";
+            }
 
-            $stmt->execute([$taxon, $protein]);
+            if (!empty($protein)) {
+                $where[] = "protein_name LIKE ?";
+                $params[] = "%" . $protein . "%";
+            }
+
+            $countSql = "SELECT COUNT(*) FROM protein_data";
+            if (!empty($where)) {
+                $countSql .= " WHERE " . implode(" AND ", $where);
+            }
+
+            $countStmt = $conn->prepare($countSql);
+            $countStmt->execute($params);
+            $total_rows = (int)$countStmt->fetchColumn();
+            $total_pages = max(1, ceil($total_rows / $limit));
+
+            $sql = "SELECT accession_id, description, seq_length, taxon_group, protein_name
+                    FROM protein_data";
+            if (!empty($where)) {
+                $sql .= " WHERE " . implode(" AND ", $where);
+            }
+            $sql .= " ORDER BY $sort $order LIMIT $limit OFFSET $offset";
+
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
             $data = $stmt->fetchAll();
         }
     }
 }
 
-
-if (!empty($taxon) && !empty($protein)) {
-
+// ---------------------------
+// 记录 QUERY 历史
+// 只在用户真正提交搜索时记录
+// ---------------------------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ( !empty($taxon) || !empty($protein) )) {
     $history = $conn->prepare(
         "INSERT INTO analysis_history (taxon, protein, action)
          VALUES (?, ?, 'QUERY')"
     );
     $history->execute([$taxon, $protein]);
 }
-
 ?>
-
-<?php include __DIR__ . '/../components/header.php'; ?>
-
 
 <!DOCTYPE html>
 <html>
@@ -165,8 +195,9 @@ if (!empty($taxon) && !empty($protein)) {
     <title>Protein Query</title>
     <link rel="stylesheet" href="/~s2845297/B290295_website/frontend/assets/css/style.css">
 </head>
-
 <body>
+
+<?php include __DIR__ . '/../components/header.php'; ?>
 
 <div class="page-container">
 
@@ -178,21 +209,24 @@ if (!empty($taxon) && !empty($protein)) {
 
     <br><br>
 
-    <!-- 输入框 -->
     <form method="post">
         <input type="text" name="taxon"
                placeholder="Enter taxon (e.g. Mammalia, Aves)"
-               value="<?= htmlspecialchars($taxon) ?>" required>
+               value="<?= htmlspecialchars($taxon) ?>">
 
         <input type="text" name="protein"
                placeholder="Enter protein (e.g. kinase, ABC-transporter)"
-               value="<?= htmlspecialchars($protein) ?>" required>
+               value="<?= htmlspecialchars($protein) ?>">
 
         <button type="submit" class="enter-button">Search</button>
     </form>
 
     <small>
-        Examples of Taxon:Mammalia, Rodentia, Aves, cat | Examples of Protein: kinase, ABC-transporter, adenylyl
+        You can search by taxon only, protein only, or both together.
+    </small>
+    <br>
+    <small>
+        Examples of Taxon: Mammalia, Rodentia, Aves, cat | Examples of Protein: kinase, ABC-transporter, adenylyl
     </small>
 
     <hr>
@@ -203,9 +237,25 @@ if (!empty($taxon) && !empty($protein)) {
 
     <?php if (!empty($data)): ?>
 
-        <form method="post" action="msa.php" id="msaForm">
+        <?php
+        $string_ids = [];
+        foreach ($data as $row) {
+            $string_ids[] = $row['accession_id'];
+        }
+        $string_url = "https://string-db.org/cgi/network?identifiers=" . implode("%0d", array_map('rawurlencode', $string_ids));
+        ?>
 
-            <!-- ⭐ 关键：把 taxon + protein 传给 MSA -->
+        <div style="margin-bottom:15px;">
+            <a href="<?= htmlspecialchars($string_url) ?>"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="enter-button"
+               style="display:inline-block; text-decoration:none;">
+                STRING Interactions
+            </a>
+        </div>
+
+        <form method="post" action="msa.php" id="msaForm">
             <input type="hidden" name="taxon" value="<?= htmlspecialchars($taxon) ?>">
             <input type="hidden" name="protein" value="<?= htmlspecialchars($protein) ?>">
 
@@ -215,7 +265,7 @@ if (!empty($taxon) && !empty($protein)) {
                         <th><input type="checkbox" id="selectAll"></th>
 
                         <th>
-                            <a href="?sort=accession_id&order=<?= $order === 'asc' ? 'desc' : 'asc' ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>">
+                            <a href="?sort=accession_id&order=<?= $order === 'asc' ? 'desc' : 'asc' ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>&page=<?= $page ?>">
                                 Accession
                             </a>
                         </th>
@@ -223,12 +273,13 @@ if (!empty($taxon) && !empty($protein)) {
                         <th>Description</th>
 
                         <th>
-                            <a href="?sort=seq_length&order=<?= $order === 'asc' ? 'desc' : 'asc' ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>">
+                            <a href="?sort=seq_length&order=<?= $order === 'asc' ? 'desc' : 'asc' ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>&page=<?= $page ?>">
                                 Length
                             </a>
                         </th>
 
                         <th>Taxon</th>
+                        <th>Protein</th>
                     </tr>
                 </thead>
 
@@ -244,39 +295,42 @@ if (!empty($taxon) && !empty($protein)) {
 
                         <td>
                             <strong><?= htmlspecialchars($row['accession_id']) ?></strong><br>
-
-                            <!-- ✅ 正确路径 -->
-			    <a href="prosite_scan.php?accession=<?= urlencode($row['accession_id']) ?>&taxon=<?= urlencode($taxon) ?>
-&protein=<?= urlencode($protein) ?>
-<?php foreach ($selected_ids as $id): ?>&selected[]=<?= urlencode($id) ?><?php endforeach; ?>"
+                            <a href="prosite_scan.php?accession=<?= urlencode($row['accession_id']) ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?><?php foreach ($selected_ids as $id): ?>&selected[]=<?= urlencode($id) ?><?php endforeach; ?>"
                                class="scan-link">
                                Scan Motifs
                             </a>
                         </td>
 
                         <td><?= htmlspecialchars($row['description']) ?></td>
-                        <td><?= $row['seq_length'] ?></td>
+                        <td><?= htmlspecialchars((string)$row['seq_length']) ?></td>
                         <td><?= htmlspecialchars($row['taxon_group']) ?></td>
+                        <td><?= htmlspecialchars($row['protein_name']) ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
-	    <div class="pagination">
 
-            <a href="?page=1&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>">First</a>
-            <a href="?page=<?= max(1,$page-1) ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>">Prev</a>
-
-            <a href="?page=<?= $page+1 ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>">Next</a>
-
+            <div style="margin-top:15px;">
+                <button type="submit" class="enter-button" id="msaBtn">
+                    Run MSA
+                </button>
             </div>
-
-            <button type="submit" class="enter-button" id="msaBtn">
-                Run MSA
-            </button>
-
         </form>
 
-        <!-- Select All -->
+        <div style="margin-top:20px;">
+            <a href="?page=1&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>&sort=<?= urlencode($sort) ?>&order=<?= urlencode($order) ?>" class="scan-link">First</a>
+            &nbsp;|&nbsp;
+            <a href="?page=<?= max(1, $page - 1) ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>&sort=<?= urlencode($sort) ?>&order=<?= urlencode($order) ?>" class="scan-link">Previous</a>
+            &nbsp;|&nbsp;
+            <a href="?page=<?= min($total_pages, $page + 1) ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>&sort=<?= urlencode($sort) ?>&order=<?= urlencode($order) ?>" class="scan-link">Next</a>
+            &nbsp;|&nbsp;
+            <a href="?page=<?= $total_pages ?>&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>&sort=<?= urlencode($sort) ?>&order=<?= urlencode($order) ?>" class="scan-link">Last</a>
+
+            <span style="margin-left:15px;">
+                Page <?= htmlspecialchars((string)$page) ?> / <?= htmlspecialchars((string)$total_pages) ?>
+            </span>
+        </div>
+
         <script>
         document.getElementById('selectAll').addEventListener('click', function(){
             document.querySelectorAll('input[name="selected[]"]').forEach(cb => {
@@ -285,7 +339,7 @@ if (!empty($taxon) && !empty($protein)) {
         });
         </script>
 
-    <?php elseif (!empty($taxon) && !empty($protein) && empty($error_message)): ?>
+    <?php elseif ((!empty($taxon) || !empty($protein)) && empty($error_message)): ?>
         <p>No sequences found.</p>
     <?php endif; ?>
 

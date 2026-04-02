@@ -1,81 +1,98 @@
 <?php
 $selected_ids = $_POST['selected'] ?? [];
 
-$conn = new PDO("mysql:host=127.0.0.1;dbname=s2845297_website", "s2845297", "YuQ1LiN030709!");
-
-$placeholders = implode(',', array_fill(0, count($selected_ids), '?'));
-
-$stmt = $conn->prepare(
-    "SELECT accession_id, sequence FROM protein_data
-     WHERE accession_id IN ($placeholders)"
+$conn = new PDO(
+    "mysql:host=127.0.0.1;dbname=s2845297_website;charset=utf8mb4",
+    "s2845297",
+    "YuQ1LiN030709!",
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
 );
 
-$stmt->execute($selected_ids);
-$data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$newick = '';
+$tree_png_base64 = '';
+$error = '';
 
-$fasta = '';
-foreach ($data as $r) {
-    $fasta .= ">" . $r['accession_id'] . "\n";
-    $fasta .= $r['sequence'] . "\n";
+if (count($selected_ids) >= 2) {
+    $placeholders = implode(',', array_fill(0, count($selected_ids), '?'));
+
+    $stmt = $conn->prepare(
+        "SELECT accession_id, sequence FROM protein_data
+         WHERE accession_id IN ($placeholders)"
+    );
+
+    $stmt->execute($selected_ids);
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $fasta = '';
+    foreach ($data as $r) {
+        $fasta .= ">" . $r['accession_id'] . "\n";
+        $fasta .= $r['sequence'] . "\n";
+    }
+
+    $fasta_file = "/tmp/tree_" . uniqid() . ".fasta";
+    file_put_contents($fasta_file, $fasta);
+
+    $aln_file = "/tmp/aln_" . uniqid() . ".fasta";
+    $clustalo_cmd = "clustalo -i " . escapeshellarg($fasta_file) . " -o " . escapeshellarg($aln_file) . " --force --outfmt=fasta 2>&1";
+    $clustalo_output = shell_exec($clustalo_cmd);
+
+    if (!file_exists($aln_file) || filesize($aln_file) == 0) {
+        $error = "Alignment failed: " . $clustalo_output;
+    } else {
+        $cmd = "/usr/bin/python3 " . __DIR__ . "/../backend/tree.py " . escapeshellarg($aln_file) . " 2>&1";
+        $json_output = shell_exec($cmd);
+        $tree_data = json_decode($json_output, true);
+
+        if (!is_array($tree_data) || isset($tree_data['error'])) {
+            $error = is_array($tree_data) ? $tree_data['error'] : $json_output;
+        } else {
+            $newick = $tree_data['newick'] ?? '';
+            $png_file = $tree_data['png_file'] ?? '';
+
+            if ($png_file && file_exists($png_file)) {
+                $tree_png_base64 = base64_encode(file_get_contents($png_file));
+            }
+        }
+    }
+
+    $history = $conn->prepare(
+        "INSERT INTO analysis_history (selected_ids, action)
+         VALUES (?, 'TREE')"
+    );
+    $history->execute([implode(',', $selected_ids)]);
+} else {
+    $error = "Please select at least 2 sequences.";
 }
-
-// 1️⃣ 写 FASTA
-$fasta_file = "/tmp/tree_" . uniqid() . ".fasta";
-file_put_contents($fasta_file, $fasta);
-
-// 2️⃣ 先做 MSA（关键！）
-$msa_cmd = "/usr/bin/python3 " . __DIR__ . "/../backend/msa.py " . $fasta_file;
-$msa_output = shell_exec($msa_cmd);
-
-// 🔥 提取 alignment 文件（重新跑一次 clustal 输出 fasta）
-$aln_file = "/tmp/aln_" . uniqid() . ".fasta";
-
-exec("clustalo -i $fasta_file -o $aln_file --force --outfmt=fasta");
-
-// 3️⃣ 再构建 tree
-$cmd = "/usr/bin/python3 " . __DIR__ . "/../backend/tree.py $aln_file 2>&1";
-$newick = trim(shell_exec($cmd));
-
-// 清理
-$newick = str_replace(["\n", "\r"], '', $newick);
-$history = $conn->prepare(
-    "INSERT INTO analysis_history (selected_ids, action)
-     VALUES (?, 'TREE')"
-);
-
 ?>
-<?php ob_start(); ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-<title>Tree Visualization</title>
-<link rel="stylesheet" href="/~s2845297/B290295_website/frontend/assets/css/style.css">
+    <title>Tree Visualization</title>
+    <link rel="stylesheet" href="/~s2845297/B290295_website/frontend/assets/css/style.css">
 </head>
-
 <body>
 
+<?php include __DIR__ . '/../components/header.php'; ?>
+
 <div class="page-container">
+    <h2>Phylogenetic Tree</h2>
 
-<h2>Phylogenetic Tree</h2>
-<div id="tree"></div>
+    <?php if ($error): ?>
+        <p class="error"><?= htmlspecialchars($error) ?></p>
+    <?php else: ?>
+        <?php if ($tree_png_base64): ?>
+            <div style="margin-top:20px; background:#ffffff; padding:12px; border-radius:6px;">
+                <img src="data:image/png;base64,<?= $tree_png_base64 ?>" alt="Phylogenetic Tree" style="max-width:100%; height:auto;">
+            </div>
+        <?php endif; ?>
 
-<script src="https://unpkg.com/phylotree@1.0.0/dist/phylotree.js"></script>
+        <?php if ($newick): ?>
+            <h3>Newick Format</h3>
+            <pre><?= htmlspecialchars($newick) ?></pre>
+        <?php endif; ?>
+    <?php endif; ?>
+</div>
 
-<script>
-let newick = <?= json_encode($newick) ?>;
-
-document.addEventListener("DOMContentLoaded", function () {
-
-    let tree = new phylotree.phylotree(newick);
-
-    tree.render("#tree");
-
-});
-</script>
-<pre><?= htmlspecialchars($newick) ?></pre>
-<?php
-$content = ob_get_clean();
-include __DIR__ . '/../layout.php';
-?>
-
+</body>
+</html>

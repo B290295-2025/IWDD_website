@@ -9,7 +9,7 @@
 
         <a href="/~s2845297/B290295_website/pages/tree_upload.php">Phylogenetic Tree</a>
 
-        <a href="/~s2845297/B290295_website/pages/emboss.php">EMBOSS</a>
+        <a href="/~s2845297/B290295_website/pages/string.php">STRING</a>
 
 	<a href="/~s2845297/B290295_website/pages/history.php">History</a>
     </div>

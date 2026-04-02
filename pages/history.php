@@ -63,7 +63,10 @@ Re-run
 <?php endforeach; ?>
 <button>Run MSA</button>
 </form>
-
+<?php elseif ($row['action'] === 'MOTIF'): ?>
+    <a href="protein_query.php?taxon=<?= urlencode($row['taxon'] ?? '') ?>&protein=<?= urlencode($row['protein'] ?? '') ?>">
+        Re-run Motif Workflow
+    </a>
 <?php elseif ($row['action'] === 'TREE'): ?>
 
 <form method="post" action="tree.php">

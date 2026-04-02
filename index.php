@@ -44,9 +44,9 @@
         </div>
 
         <div class="card">
-            <h3>EMBOSS Analysis</h3>
-            <p>Run EMBOSS tools</p>
-            <a href="pages/emboss.php" class="enter-button">Enter</a>
+            <h3> Protein Interaction</h3>
+            <p>Analyze by STRING</p>
+            <a href="pages/string.php" class="enter-button">Enter</a>
         </div>
 
 
