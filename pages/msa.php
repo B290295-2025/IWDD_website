@@ -326,9 +326,6 @@ $string_url = "https://string-db.org/cgi/network?identifiers=" . $string_ids;
 
             <br>
 
-            <a href="<?= htmlspecialchars($string_url) ?>" target="_blank" rel="noopener noreferrer" class="enter-button" style="display:inline-block; text-decoration:none;">
-                STRING Interactions
-            </a>
         <?php endif; ?>
     </div>
 
@@ -364,10 +361,6 @@ $string_url = "https://string-db.org/cgi/network?identifiers=" . $string_ids;
                     <?php endforeach; ?>
                     <button class="enter-button">Phylogenetic Tree</button>
                 </form>
-            </div>
-
-            <div class="msa-box">
-                <?= render_msa_html($alignment_display) ?>
             </div>
 
             <div style="margin-top:20px;">
@@ -409,6 +402,10 @@ $string_url = "https://string-db.org/cgi/network?identifiers=" . $string_ids;
                 <div style="background:#ffffff; padding:12px; border-radius:6px;">
                     <canvas id="scoreChart" height="120"></canvas>
                 </div>
+            </div>
+
+            <div class="msa-box" style="margin-top:20px;">
+                <?= render_msa_html($alignment_display) ?>
             </div>
 
             <script>

@@ -44,9 +44,9 @@
         </div>
 
         <div class="card">
-            <h3> Protein Interaction</h3>
-            <p>Analyze by STRING</p>
-            <a href="pages/string.php" class="enter-button">Enter</a>
+            <h3> View 3D Structure</h3>
+            <p>Visualize 3D structure in AlphaFold</p>
+            <a href="pages/protein_query.php" class="enter-button">Enter</a>
         </div>
 
 

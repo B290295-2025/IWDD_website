@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($taxon) && empty($protein)) {
 // ---------------------------
 // 查询逻辑
 // ---------------------------
-if (( !empty($taxon) || !empty($protein) ) || !empty($selected_ids)) {
+if ((!empty($taxon) || !empty($protein)) || !empty($selected_ids)) {
 
     // 只有 taxon 和 protein 都填写时，才远程抓取并缓存
     if (!empty($taxon) && !empty($protein) && empty($selected_ids)) {
@@ -115,7 +115,7 @@ if (( !empty($taxon) || !empty($protein) ) || !empty($selected_ids)) {
     if (empty($error_message)) {
 
         if (!empty($selected_ids)) {
-            // 从 MSA 返回，只显示选中的序列
+            // 从其他页面返回，只显示选中的序列
             $placeholders = implode(',', array_fill(0, count($selected_ids), '?'));
 
             $countStmt = $conn->prepare(
@@ -178,9 +178,8 @@ if (( !empty($taxon) || !empty($protein) ) || !empty($selected_ids)) {
 
 // ---------------------------
 // 记录 QUERY 历史
-// 只在用户真正提交搜索时记录
 // ---------------------------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ( !empty($taxon) || !empty($protein) )) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($taxon) || !empty($protein))) {
     $history = $conn->prepare(
         "INSERT INTO analysis_history (taxon, protein, action)
          VALUES (?, ?, 'QUERY')"
@@ -236,24 +235,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ( !empty($taxon) || !empty($protein
     <?php endif; ?>
 
     <?php if (!empty($data)): ?>
-
-        <?php
-        $string_ids = [];
-        foreach ($data as $row) {
-            $string_ids[] = $row['accession_id'];
-        }
-        $string_url = "https://string-db.org/cgi/network?identifiers=" . implode("%0d", array_map('rawurlencode', $string_ids));
-        ?>
-
-        <div style="margin-bottom:15px;">
-            <a href="<?= htmlspecialchars($string_url) ?>"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="enter-button"
-               style="display:inline-block; text-decoration:none;">
-                STRING Interactions
-            </a>
-        </div>
 
         <form method="post" action="msa.php" id="msaForm">
             <input type="hidden" name="taxon" value="<?= htmlspecialchars($taxon) ?>">
@@ -317,6 +298,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ( !empty($taxon) || !empty($protein
             </div>
         </form>
 
+        <form method="post" action="alphafold_redirect.php" style="margin-top:15px;">
+            <input type="hidden" name="taxon" value="<?= htmlspecialchars($taxon) ?>">
+            <input type="hidden" name="protein" value="<?= htmlspecialchars($protein) ?>">
+
+            <?php foreach ($data as $row): ?>
+                <input type="hidden"
+                       class="alphafold-hidden"
+                       data-accession="<?= htmlspecialchars($row['accession_id']) ?>"
+                       value="<?= htmlspecialchars($row['accession_id']) ?>">
+            <?php endforeach; ?>
+
+            <div id="alphafoldSelectedContainer"></div>
+
+            <button type="submit" class="enter-button" id="alphafoldBtn">
+                View 3D Structure
+            </button>
+        </form>
+
         <div style="margin-top:20px;">
             <a href="?page=1&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>&sort=<?= urlencode($sort) ?>&order=<?= urlencode($order) ?>" class="scan-link">First</a>
             &nbsp;|&nbsp;
@@ -336,6 +335,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ( !empty($taxon) || !empty($protein
             document.querySelectorAll('input[name="selected[]"]').forEach(cb => {
                 cb.checked = this.checked;
             });
+            syncAlphaFoldSelection();
+        });
+
+        document.querySelectorAll('input[name="selected[]"]').forEach(cb => {
+            cb.addEventListener('change', syncAlphaFoldSelection);
+        });
+
+        function syncAlphaFoldSelection() {
+            const container = document.getElementById('alphafoldSelectedContainer');
+            container.innerHTML = '';
+
+            document.querySelectorAll('input[name="selected[]"]:checked').forEach(cb => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected[]';
+                input.value = cb.value;
+                container.appendChild(input);
+            });
+        }
+
+        syncAlphaFoldSelection();
+
+        document.getElementById('alphafoldBtn').addEventListener('click', function(e) {
+            const checked = document.querySelectorAll('input[name="selected[]"]:checked');
+            if (checked.length !== 1) {
+                e.preventDefault();
+                alert('Please select exactly 1 protein to view 3D structure.');
+            }
         });
         </script>
 

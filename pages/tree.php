@@ -11,6 +11,21 @@ $conn = new PDO(
 $newick = '';
 $tree_png_base64 = '';
 $error = '';
+$download_png_file = '';
+
+if (isset($_GET['download_png'])) {
+    $file = "/tmp/" . basename($_GET['download_png']);
+
+    if (file_exists($file)) {
+        header('Content-Type: image/png');
+        header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+        readfile($file);
+        exit;
+    } else {
+        echo "File not found";
+        exit;
+    }
+}
 
 if (count($selected_ids) >= 2) {
     $placeholders = implode(',', array_fill(0, count($selected_ids), '?'));
@@ -51,6 +66,10 @@ if (count($selected_ids) >= 2) {
 
             if ($png_file && file_exists($png_file)) {
                 $tree_png_base64 = base64_encode(file_get_contents($png_file));
+
+                $download_png_name = "tree_" . time() . ".png";
+                copy($png_file, "/tmp/" . $download_png_name);
+                $download_png_file = $download_png_name;
             }
         }
     }
@@ -82,6 +101,14 @@ if (count($selected_ids) >= 2) {
         <p class="error"><?= htmlspecialchars($error) ?></p>
     <?php else: ?>
         <?php if ($tree_png_base64): ?>
+            <?php if (!empty($download_png_file)): ?>
+                <div style="margin-top:20px;">
+                    <a href="tree.php?download_png=<?= urlencode($download_png_file) ?>" class="download-btn">
+                        Save Tree Image
+                    </a>
+                </div>
+            <?php endif; ?>
+
             <div style="margin-top:20px; background:#ffffff; padding:12px; border-radius:6px;">
                 <img src="data:image/png;base64,<?= $tree_png_base64 ?>" alt="Phylogenetic Tree" style="max-width:100%; height:auto;">
             </div>
@@ -89,7 +116,7 @@ if (count($selected_ids) >= 2) {
 
         <?php if ($newick): ?>
             <h3>Newick Format</h3>
-            <pre><?= htmlspecialchars($newick) ?></pre>
+            <pre style="white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;"><?= htmlspecialchars($newick) ?></pre>
         <?php endif; ?>
     <?php endif; ?>
 </div>

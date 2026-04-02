@@ -3,6 +3,21 @@ $output = '';
 $newick = '';
 $tree_png_base64 = '';
 $error = '';
+$download_png_file = '';
+
+if (isset($_GET['download_png'])) {
+    $file = "/tmp/" . basename($_GET['download_png']);
+
+    if (file_exists($file)) {
+        header('Content-Type: image/png');
+        header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+        readfile($file);
+        exit;
+    } else {
+        echo "File not found";
+        exit;
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['aln_file'])) {
 
@@ -21,6 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['aln_file'])) {
 
         if ($png_file && file_exists($png_file)) {
             $tree_png_base64 = base64_encode(file_get_contents($png_file));
+
+            $download_png_name = "tree_upload_" . time() . ".png";
+            copy($png_file, "/tmp/" . $download_png_name);
+            $download_png_file = $download_png_name;
         }
     }
 }
@@ -51,6 +70,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['aln_file'])) {
 
     <?php if ($tree_png_base64): ?>
         <h3>Tree Result</h3>
+
+        <?php if (!empty($download_png_file)): ?>
+            <div style="margin-bottom:15px;">
+                <a href="tree_upload.php?download_png=<?= urlencode($download_png_file) ?>" class="download-btn">
+                    Save Tree Image
+                </a>
+            </div>
+        <?php endif; ?>
+
         <div style="background:#ffffff; padding:12px; border-radius:6px;">
             <img src="data:image/png;base64,<?= $tree_png_base64 ?>" alt="Phylogenetic Tree" style="max-width:100%; height:auto;">
         </div>
@@ -58,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['aln_file'])) {
 
     <?php if ($newick): ?>
         <h3>Newick Format</h3>
-        <pre><?= htmlspecialchars($newick) ?></pre>
+        <pre style="white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;"><?= htmlspecialchars($newick) ?></pre>
     <?php endif; ?>
 
 </div>
