@@ -7,9 +7,7 @@ from Bio import Entrez
 Entrez.email = "s2845297@ed.ac.uk"
 Entrez.api_key = "da5f2b2bc8dfd014bbd15a6760b20c082608"
 
-# ---------------------------
-# 参数
-# ---------------------------
+#  define parameters
 if len(sys.argv) < 3:
     print("Error: Missing parameters")
     sys.exit(1)
@@ -17,16 +15,14 @@ if len(sys.argv) < 3:
 taxon = sys.argv[1]
 protein = sys.argv[2]
 
-# ---------------------------
-# 构建 query
-# ---------------------------
+# setup query
 query = f'({protein}[All Fields]) AND ({taxon}[All Fields])'
 
-# 避免限速
+# 
 time.sleep(1)
 
 try:
-    # Step 1: 搜索
+    # esearch
     handle = Entrez.esearch(
         db="protein",
         term=query,
@@ -41,7 +37,7 @@ try:
         print("Error: No sequences found")
         sys.exit(1)
 
-    # Step 2: 获取 FASTA
+    # e fetch fasta file
     handle = Entrez.efetch(
         db="protein",
         id=",".join(ids),

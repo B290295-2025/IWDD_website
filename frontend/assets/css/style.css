@@ -1,11 +1,11 @@
 body { 
     font-family: Arial, sans-serif;
     margin: 0;
-    color: black; /* 全局黑色字体 */
+    color: black; /* all character using black */
     background: radial-gradient(circle at top, #8fbc8f, #20b2aa);
 }
 
-/* 顶部导航栏 */
+/* header nav-bar */
 .nav-bar {
     background: rgba(0, 0, 0, 0.6);
     padding: 15px;
@@ -23,15 +23,15 @@ body {
     color: #00d4ff;
 }
 
-/* GitHub按钮 */
+/* GitHub */
 .github-button {
     background-color: #24292e;
     padding: 6px 12px;
     border-radius: 5px;
-    color: white; /* 按钮内文字保持白色更清晰 */
+    color: white; /* in button colour */
 }
 
-/* 标题 */
+/* title */
 h1 {
     margin-top: 40px;
     font-size: 36px;
@@ -42,7 +42,7 @@ p {
     color: black;
 }
 
-/* 卡片容器 */
+/* card container */
 .container {
     padding: 40px;
 }
@@ -64,9 +64,9 @@ p {
     margin: 0 auto;
 }
 
-/* 卡片（玻璃风） */
+/* card shown as glasses */
 .card {
-    background: rgba(255, 255, 255, 0.2); /* 稍微提高透明度让黑字更清晰 */
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 15px;
     padding: 25px;
     backdrop-filter: blur(12px);
@@ -75,19 +75,19 @@ p {
     color: black;
 }
 
-/* hover 动效 */
+/* hover anime */
 .card:hover {
     transform: translateY(-8px);
     box-shadow: 0 0 25px rgb(74,95,126);
 }
 
-/* 卡片标题 */
+/* title of card */
 .card h3 { 
     margin-bottom: 10px; 
     color: black;
 }
 
-/* 卡片按钮 */
+/* card button */
 .card a {
     display: inline-block;
     margin-top: 12px;
@@ -100,7 +100,7 @@ p {
     opacity: 0.85;
 }
 
-/* ---------- Enter / Search 按钮 ---------- */
+/* Enter button and hover anime*/
 .enter-button {
     padding: 14px 40px;
     font-size: 1.3rem;
@@ -124,13 +124,15 @@ p {
     transform: scale(0.98);
 }
 
-/* ---------- Hero区域 ---------- */
+/* Hero*/
 .hero {
     padding: 60px 20px;
     text-align: center;
     background: radial-gradient(circle at center, rgba(0,212,255,0.15), transparent);
 }
-/* searching bos*/
+
+/* ---------------Protein Query-----------------*/
+/* searching box*/
  
 .page-container { max-width: 1000px; margin: 20px auto; padding: 20px; }
 .enter-button { padding: 8px 16px; background: #3498db; color: #fff; border: none; cursor: pointer; border-radius: 4px; }
@@ -141,17 +143,20 @@ p {
 .result-table th { background: #f2f2f2; cursor: pointer; }
 .scan-link { font-size: 0.9em; color: #e67e22; }
 .error { color: red; font-weight: bold; }
-/* 🔍 搜索输入框优化 */
+
+
+
+/*  searching box in protein query */
 input[type="text"] {
-    width: 300px;        /* 宽度加大 */
-    padding: 10px;       /* 内边距 */
-    font-size: 16px;     /* 字体更清晰 */
+    width: 300px;        
+    padding: 10px;  
+    font-size: 16px;   
     border-radius: 6px;
     border: 1px solid #ccc;
     margin-right: 10px;
 }
 
-/* 聚焦效果（加分项） */
+/*focus*/
 input[type="text"]:focus {
     border-color: #3498db;
     outline: none;
@@ -159,9 +164,9 @@ input[type="text"]:focus {
 }
 
 
-/* ⭐ 表头改为淡绿色 */
+/* ⭐ results table header-- light green*/
 .result-table th {
-    background-color: #98fb98; /* 淡绿色 */
+    background-color: #98fb98;
     color: black;
 }
 
@@ -198,23 +203,25 @@ input[type="text"]:focus {
     transform: translateY(-2px);
 }
 
+
+/*-------------MSA----------*/
 .msa-box {
     font-family: monospace;
     white-space: pre;
 
-    max-width: 900px;      /* 🔥 限制宽度（关键） */
-    margin: 0 auto;        /* 居中 */
+    max-width: 900px;      /*display wide make sure the table sidplay in the center */
+    margin: 0 auto;        /* center */
 
     background: rgba(255,255,255,0.7);
     padding: 15px;
-    padding-left: 30px;   /* 🔥 左边整体往右推 */
+    padding-left: 30px;   /* distance from left hand side of the page */
     border-radius: 10px;
 
-    overflow-x: auto;      /* 超出可滚动 */
+    overflow-x: auto;      /* allow rolling to downside*/
 }
 .msa-line {
-    white-space: pre;    /* 🔥 允许换行（核心） */
-    word-break: break-word;   /* 防止溢出 */
+    white-space: pre;    /*  */
+    word-break: break-word;   /* prohibit too wide */
     line-height: 1.6;
 }
 
@@ -227,25 +234,25 @@ input[type="text"]:focus {
     color: black;
 }
 
-/* 每行严格等宽 */
+/* all each row in same width */
 .msa-row {
     display: grid;
     grid-template-columns: 180px 60px auto 60px;
     align-items: center;
 }
 
-/* ID 对齐 */
+/* align the id */
 .msa-id {
     font-weight: bold;
     white-space: nowrap;
 }
 
-/* 位置 */
+/* position  */
 .msa-pos {
     text-align: right;
 }
 
-/* 序列 */
+/* sequence */
 .msa-seq {
     font-family: monospace;
     letter-spacing: 1px;
@@ -258,16 +265,16 @@ input[type="text"]:focus {
     color: red;
 }
 
-/* -------- 氨基酸配色 -------- */
+/*MSA visualization: Amino Acid colour*/
 .aa {
     font-weight: bold;
 }
 
-.aa-hydrophobic { color: #1f77b4; }   /* 蓝 */
-.aa-polar       { color: #2ca02c; }   /* 绿 */
-.aa-positive    { color: #d62728; }   /* 红 */
-.aa-negative    { color: #9467bd; }   /* 紫 */
-.aa-special     { color: #ff7f0e; }   /* 橙 */
+.aa-hydrophobic { color: #1f77b4; }   /* blue */
+.aa-polar       { color: #2ca02c; }   /* green */
+.aa-positive    { color: #d62728; }   /* red */
+.aa-negative    { color: #9467bd; }   /* purple */
+.aa-special     { color: #ff7f0e; }   /* orange */
 .aa-gap         { color: #999; }
 .aa-default     { color: black; }
 
@@ -290,6 +297,7 @@ input[type="text"]:focus {
     font-size: 1.2rem;
 }
 
+/*left hand side card display selected proteins information */
 .protein-card {
     background: rgba(255,255,255,0.8);
     border-radius: 8px;
@@ -355,24 +363,21 @@ input[type="text"]:focus {
 }
 
 /* motifs colours/
-/* ============================================================
-   PROSITE 架构图可视化 - 修复版
-   ============================================================ */
+   PROSITE visualization*/
 
-/* 1. 外层轨道容器：必须有明确高度，否则内部绝对定位元素会“隐身” */
 .motif-bar-container {
     position: relative;
     width: 100%;
-    height: 60px;               /* 明确高度 */
-    background: rgba(255, 255, 255, 0.25); /* 半透明白，在绿色背景上很清晰 */
+    height: 60px;            
+    background: rgba(255, 255, 255, 0.25); /* white */
     border-radius: 12px;
-    margin: 60px 0 40px 0;      /* 上方留出 Tooltip 弹出的空间 */
+    margin: 60px 0 40px 0;      /* sapce from top */
     border: 1px solid rgba(0, 0, 0, 0.1);
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
-    overflow: visible;          /* 必须为 visible，否则 Tooltip 会被遮挡 */
+    overflow: visible;         
     background-image: linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
-    background-size: 10% 100%; /* 每 10% 一个刻度 */}
-/* 在容器下方加一个长度标识 */
+    background-size: 10% 100%;
+/* under container give a bar to visulize the length of sequence */
 .motif-bar-container::after {
     content: '0 aa';
     position: absolute;
@@ -381,8 +386,7 @@ input[type="text"]:focus {
     font-size: 12px;
     color: #333;
 }
-
-/* 假设你的 HTML 能传入总长度，这里可以先写死或用伪元素提示 */
+/* total length of AA */
 .motif-bar-container::before {
     content: 'Total Length';
     position: absolute;
@@ -391,51 +395,51 @@ input[type="text"]:focus {
     font-size: 12px;
     color: #333;
 }
-/* 2. 每一个 Motif 轨道条 */
+/* 2. motif track visualization */
 .motif-track {
     position: absolute;
-    height: 30px;               /* 轨道条高度 */
-    top: 15px;                  /* 居中计算: (60-30)/2 */
+    height: 30px;               
+    top: 15px;                 
     border-radius: 5px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid rgba(0, 0, 0, 0.2);
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    z-index: 5;                 /* 默认层级 */
+    z-index: 5;            
 }
 
-/* 3. 悬停交互：放大、加亮并置顶 */
+/* 3. motif track anime when detect hover */
 .motif-track:hover {
     transform: scaleY(1.3);
     filter: brightness(1.2);
-    z-index: 100;               /* 解决重叠问题的核心：悬停时跳到最前面 */
+    z-index: 100;            
     box-shadow: 0 4px 15px rgba(0,0,0,0.4);
 }
 
-/* 4. Tooltip 工具提示：使用伪元素实现 */
+/* 4. 
 .motif-track::after {
-    content: attr(data-tooltip); /* 获取 PHP 传来的描述文本 */
+    content: attr(data-tooltip); /* acquire the txt from php */
     position: absolute;
-    bottom: 140%;                /* 在轨道条上方弹出 */
+    bottom: 140%;                 
     left: 50%;
     transform: translateX(-50%);
     
-    background: #2c3e50;         /* 深色背景 */
+    background: #2c3e50;     
     color: #ffffff;
     padding: 8px 14px;
     border-radius: 6px;
     font-size: 13px;
     font-weight: bold;
-    white-space: nowrap;         /* 禁止换行 */
+    white-space: nowrap;     
     
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.2s, transform 0.2s;
-    pointer-events: none;        /* 鼠标穿透，不影响点击下方轨道 */
+    pointer-events: none;     
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
 
-/* 5. Tooltip 小箭头 */
+/* 5. Tooltip */
 .motif-track::before {
     content: '';
     position: absolute;
@@ -443,13 +447,13 @@ input[type="text"]:focus {
     left: 50%;
     transform: translateX(-50%);
     border: 8px solid transparent;
-    border-top-color: #2c3e50;   /* 颜色与 Tooltip 背景一致 */
+    border-top-color: #2c3e50;  
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.2s;
 }
 
-/* 6. 悬停时激活 Tooltip */
+/* 6. hover active Tooltip */
 .motif-track:hover::after,
 .motif-track:hover::before {
     opacity: 1;

@@ -24,13 +24,15 @@
     </div>
 </div>
 
+
 <style>
-/* 确保导航栏布局正确 */
+
+/* nav bar layout*/
 
 .nav-bar {
     display: flex;
     align-items: center;
-    gap: 10px; /* 控制间距 */
+    gap: 10px; /* gap between each tool button */
 }
 .nav-bar .right {
     margin-left: auto;
