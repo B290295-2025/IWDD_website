@@ -1,7 +1,5 @@
 <?php
-// ---------------------------
-// PDO 数据库连接
-// ---------------------------
+// connect with PDO and then connect with mysql
 $dsn = "mysql:host=127.0.0.1;dbname=s2845297_website;charset=utf8mb4";
 $user = "s2845297";
 $pass = "YuQ1LiN030709!";
@@ -15,9 +13,7 @@ try {
     die("Connection failed: " . $e->getMessage());
 }
 
-// ---------------------------
-// 参数获取
-// ---------------------------
+// define parameter require
 $taxon = trim($_POST['taxon'] ?? $_GET['taxon'] ?? '');
 $protein = trim($_POST['protein'] ?? $_GET['protein'] ?? '');
 $selected_ids = $_GET['selected'] ?? [];
@@ -25,37 +21,29 @@ $selected_ids = $_GET['selected'] ?? [];
 $error_message = '';
 $data = [];
 
-// ---------------------------
-// 分页
-// ---------------------------
+// indicate pages
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $limit = 10;
 $offset = ($page - 1) * $limit;
 $total_rows = 0;
 $total_pages = 1;
 
-// ---------------------------
-// 排序
-// ---------------------------
+// sorting
 $sort = $_GET['sort'] ?? 'accession_id';
 $sort = in_array($sort, ['seq_length', 'accession_id']) ? $sort : 'accession_id';
 
 $order = $_GET['order'] ?? 'asc';
 $order = $order === 'desc' ? 'desc' : 'asc';
 
-// ---------------------------
-// 表单校验
-// ---------------------------
+// check whether has input
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($taxon) && empty($protein)) {
     $error_message = "Please enter at least one search term: taxon or protein.";
 }
 
-// ---------------------------
-// 查询逻辑
-// ---------------------------
+// searching logic
 if (( !empty($taxon) || !empty($protein) ) || !empty($selected_ids)) {
 
-    // 只有 taxon 和 protein 都填写时，才远程抓取并缓存
+    // only search from cache when taxon and protein are both specified. 
     if (!empty($taxon) && !empty($protein) && empty($selected_ids)) {
 
         $stmt = $conn->prepare(
@@ -109,13 +97,11 @@ if (( !empty($taxon) || !empty($protein) ) || !empty($selected_ids)) {
         }
     }
 
-    // ---------------------------
-    // 数据读取
-    // ---------------------------
+    // acquire data
     if (empty($error_message)) {
 
         if (!empty($selected_ids)) {
-            // 从 MSA 返回，只显示选中的序列
+            // back from msa then onlly shows the selected proteins
             $placeholders = implode(',', array_fill(0, count($selected_ids), '?'));
 
             $countStmt = $conn->prepare(
@@ -138,7 +124,6 @@ if (( !empty($taxon) || !empty($protein) ) || !empty($selected_ids)) {
             $data = $stmt->fetchAll();
 
         } else {
-            // 动态 where
             $where = [];
             $params = [];
 
@@ -176,10 +161,7 @@ if (( !empty($taxon) || !empty($protein) ) || !empty($selected_ids)) {
     }
 }
 
-// ---------------------------
-// 记录 QUERY 历史
-// 只在用户真正提交搜索时记录
-// ---------------------------
+// only record the query history when user submit the query
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ( !empty($taxon) || !empty($protein) )) {
     $history = $conn->prepare(
         "INSERT INTO analysis_history (taxon, protein, action)
