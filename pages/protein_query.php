@@ -299,16 +299,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ( !empty($taxon) || !empty($protein
             </div>
         </form>
 
-        <form method="post" action="alphafold_redirect.php" id="alphafoldForm" style="margin-top:15px;" target="blank">
-            <input type="hidden" name="taxon" value="<?= htmlspecialchars($taxon) ?>">
-            <input type="hidden" name="protein" value="<?= htmlspecialchars($protein) ?>">
-            <div id="alphafoldSelectedContainer"></div>
-
-            <button type="submit" class="enter-button" id="alphafoldBtn">
-                View 3D Structure
-            </button>
-        </form>
-
         <div style="margin-top:20px;">
             <a href="?page=1&taxon=<?= urlencode($taxon) ?>&protein=<?= urlencode($protein) ?>&sort=<?= urlencode($sort) ?>&order=<?= urlencode($order) ?>" class="scan-link">First</a>
             &nbsp;|&nbsp;
@@ -322,42 +312,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ( !empty($taxon) || !empty($protein
                 Page <?= htmlspecialchars((string)$page) ?> / <?= htmlspecialchars((string)$total_pages) ?>
             </span>
         </div>
-
-        <script>
-        function syncAlphaFoldSelection() {
-            const container = document.getElementById('alphafoldSelectedContainer');
-            container.innerHTML = '';
-
-            document.querySelectorAll('input[name="selected[]"]:checked').forEach(cb => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'selected[]';
-                input.value = cb.value;
-                container.appendChild(input);
-            });
-        }
-
-        document.getElementById('selectAll').addEventListener('click', function(){
-            document.querySelectorAll('input[name="selected[]"]').forEach(cb => {
-                cb.checked = this.checked;
-            });
-            syncAlphaFoldSelection();
-        });
-
-        document.querySelectorAll('input[name="selected[]"]').forEach(cb => {
-            cb.addEventListener('change', syncAlphaFoldSelection);
-        });
-
-        document.getElementById('alphafoldForm').addEventListener('submit', function(e) {
-            const checked = document.querySelectorAll('input[name="selected[]"]:checked');
-            if (checked.length !== 1) {
-                e.preventDefault();
-                alert('Please select exactly 1 protein to view 3D structure.');
-            }
-        });
-
-        syncAlphaFoldSelection();
-        </script>
 
     <?php elseif ((!empty($taxon) || !empty($protein)) && empty($error_message)): ?>
         <p>No sequences found.</p>
