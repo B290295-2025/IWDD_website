@@ -222,11 +222,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ( !empty($taxon) || !empty($protein
     </form>
 
     <small>
-        You can search by taxon only, protein only, or both together.
+        You can search by taxon only, protein only, or filter ruesults by using both together.
     </small>
     <br>
     <small>
-        Examples of Taxon: Mammalia, Rodentia, Aves, cat | Examples of Protein: glucose-6-phosphatase, kinase, ABC-transporter, adenylyl
+        Examples of Taxon: Mammalia, Rodentia, Aves | Examples of Protein: glucose-6-phosphatase, kinase, ABC-transporter, adenylyl
     </small>
 
     <hr>
