@@ -74,9 +74,9 @@ function build_msa_report($scores, $seq_count) {
         if ($s >= 0.9) $high_sites++;
     }
 
-    $message = 'Moderate sequence conservation detected.';
+    $message = 'Moderate BLOSUM-supported conservation detected.';
     if ($avg >= 0.85) {
-        $message = 'Strong overall conservation detected across the alignment.';
+        $message = 'Strong overall BLOSUM-supported conservation detected across the alignment.';
     } elseif ($avg < 0.5) {
         $message = 'The selected sequences are relatively divergent.';
     }
@@ -386,7 +386,7 @@ $string_url = "https://string-db.org/cgi/network?identifiers=" . $string_ids;
                             <td><?= htmlspecialchars((string)$msa_report['average_score']) ?></td>
                         </tr>
                         <tr>
-                            <td>Highly conserved positions (≥ 0.9)</td>
+                            <td>Highly conserved positions (normalized BLOSUM62 ≥ 0.9)</td>
                             <td><?= htmlspecialchars((string)$msa_report['high_sites']) ?></td>
                         </tr>
                         <tr>
@@ -398,7 +398,7 @@ $string_url = "https://string-db.org/cgi/network?identifiers=" . $string_ids;
             </div>
 
             <div style="margin-top:20px;">
-                <h3>Conservation Score</h3>
+                <h3>BLOSUM62 Conservation Score</h3>
                 <div style="background:#ffffff; padding:12px; border-radius:6px;">
                     <canvas id="scoreChart" height="120"></canvas>
                 </div>
@@ -429,7 +429,7 @@ $string_url = "https://string-db.org/cgi/network?identifiers=" . $string_ids;
                     data: {
                         labels: msaLabels,
                         datasets: [{
-                            label: 'Conservation score',
+                            label: 'BLOSUM62 conservation score',
                             data: msaScores,
                             tension: 0.2,
                             pointRadius: 0
@@ -444,7 +444,7 @@ $string_url = "https://string-db.org/cgi/network?identifiers=" . $string_ids;
                                 max: 1,
                                 title: {
                                     display: true,
-                                    text: 'Score'
+                                    text: 'Normalized BLOSUM score'
                                 }
                             },
                             x: {

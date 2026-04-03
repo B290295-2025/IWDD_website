@@ -164,7 +164,13 @@ if (!is_array($motif_reports)) {
                 <?php else: ?>
                     <?php foreach ($results as $m): ?>
                         <tr>
-                            <td><?= htmlspecialchars($m['accession']) ?></td>
+                            <td>
+                                <?php if (preg_match('/^PS\d{5}$/', $m['accession'] ?? '')): ?>
+                                    <a href="https://prosite.expasy.org/<?= rawurlencode($m['accession']) ?>" target="_blank" rel="noopener noreferrer"><?= htmlspecialchars($m['accession']) ?></a>
+                                <?php else: ?>
+                                    <?= htmlspecialchars($m['accession']) ?>
+                                <?php endif; ?>
+                            </td>
                             <td><?= htmlspecialchars($m['name']) ?></td>
                             <td><?= htmlspecialchars($m['description']) ?></td>
                             <td><?= htmlspecialchars((string)$m['start']) ?></td>

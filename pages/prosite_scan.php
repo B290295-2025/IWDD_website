@@ -16,6 +16,7 @@ $results = [];
 $protein_info = null;
 $residue_scores = [];
 $motif_reports = [];
+$confidence_site = null;
 
 function split_alignment_and_scores_local($raw) {
     $scores = [];
@@ -34,7 +35,8 @@ function split_alignment_and_scores_local($raw) {
 }
 
 function parse_clustal_sequences_local($msa) {
-    $lines = explode("\n", $msa);
+    $lines = explode("
+", $msa);
     $seqs = [];
 
     foreach ($lines as $line) {
@@ -60,6 +62,96 @@ function residue_scores_from_alignment($aligned_target, $column_scores) {
         }
     }
     return $residue_scores;
+}
+
+function is_official_prosite_accession($acc) {
+    return is_string($acc) && preg_match('/^PS\d{5}$/', $acc);
+}
+
+function is_frequent_pattern($acc) {
+    $frequent = [
+        'PS00001',
+        'PS00004',
+        'PS00005',
+        'PS00006',
+        'PS00008',
+        'PS00009',
+        'PS00017'
+    ];
+    return in_array($acc, $frequent, true);
+}
+
+function build_motif_confidence_report($motif, $residue_scores) {
+    $start = max(1, intval($motif['start'] ?? 0));
+    $end = min(count($residue_scores), intval($motif['end'] ?? 0));
+    $segment = [];
+    if ($end >= $start && !empty($residue_scores)) {
+        $segment = array_slice($residue_scores, $start - 1, $end - $start + 1);
+    }
+
+    $avg = 0.0;
+    $min_score = 0.0;
+    $high_count = 0;
+    $high_fraction = 0.0;
+    $motif_length = max(1, $end - $start + 1);
+
+    if (!empty($segment)) {
+        $avg = round(array_sum($segment) / count($segment), 3);
+        $min_score = round(min($segment), 3);
+        foreach ($segment as $s) {
+            if ($s >= 0.8) {
+                $high_count++;
+            }
+        }
+        $high_fraction = round($high_count / count($segment), 3);
+    }
+
+    $accession = $motif['accession'] ?? '';
+    $official = is_official_prosite_accession($accession);
+    $frequent = is_frequent_pattern($accession);
+
+    $authority_factor = 0.55;
+    if ($official && !$frequent) {
+        $authority_factor = 1.0;
+    } elseif ($official && $frequent) {
+        $authority_factor = 0.7;
+    }
+
+    $specificity_factor = min(1.0, 0.45 + (min($motif_length, 12) / 20.0));
+    $conservation_support = round((0.6 * $avg) + (0.25 * $min_score) + (0.15 * $high_fraction), 3);
+    $weighted_score = round(100 * $conservation_support * $authority_factor * $specificity_factor, 2);
+
+    $confidence = 'low';
+    $message = "Low-support motif hit. Consider it tentative unless backed by stronger conservation or external evidence.";
+
+    if ($official && !$frequent && $weighted_score >= 75 && $avg >= 0.75 && $min_score >= 0.45) {
+        $confidence = 'high';
+        $message = "High-confidence site: official PROSITE motif with strong BLOSUM-supported conservation (weighted score {$weighted_score}).";
+    } elseif ($official && $weighted_score >= 55) {
+        $confidence = 'medium';
+        $message = "Moderate-confidence site: official PROSITE motif with moderate BLOSUM conservation support (weighted score {$weighted_score}).";
+    } elseif ($official && $frequent) {
+        $confidence = 'supporting';
+        $message = "Supporting evidence only: frequent PROSITE pattern down-weighted to reduce over-calling (weighted score {$weighted_score}).";
+    } elseif (!$official) {
+        $confidence = 'custom';
+        $message = "Custom project motif: informative for your dataset, but not an official PROSITE assignment (weighted score {$weighted_score}).";
+    }
+
+    return [
+        'accession' => $accession,
+        'name' => $motif['name'] ?? '',
+        'start' => $motif['start'] ?? 0,
+        'end' => $motif['end'] ?? 0,
+        'avg_score' => $avg,
+        'min_score' => $min_score,
+        'high_fraction' => $high_fraction,
+        'motif_length' => $motif_length,
+        'conservation_support' => $conservation_support,
+        'weighted_score' => $weighted_score,
+        'confidence' => $confidence,
+        'message' => $message
+    ];
 }
 
 $accession = $_GET['accession'] ?? '';
@@ -101,8 +193,10 @@ if ($accession) {
             if (!empty($msa_rows)) {
                 $fasta = '';
                 foreach ($msa_rows as $r) {
-                    $fasta .= ">" . $r['accession_id'] . "\n";
-                    $fasta .= $r['sequence'] . "\n";
+                    $fasta .= ">" . $r['accession_id'] . "
+";
+                    $fasta .= $r['sequence'] . "
+";
                 }
 
                 $input_file = "/tmp/motif_msa_" . uniqid() . ".fasta";
@@ -120,29 +214,15 @@ if ($accession) {
 
                 if (!empty($residue_scores) && !empty($results)) {
                     foreach ($results as $m) {
-                        $start = max(1, intval($m['start']));
-                        $end = min(count($residue_scores), intval($m['end']));
-                        $segment = array_slice($residue_scores, $start - 1, $end - $start + 1);
+                        $motif_reports[] = build_motif_confidence_report($m, $residue_scores);
+                    }
 
-                        $avg = 0;
-                        if (!empty($segment)) {
-                            $avg = round(array_sum($segment) / count($segment), 3);
-                        }
+                    usort($motif_reports, function($a, $b) {
+                        return ($b['weighted_score'] <=> $a['weighted_score']);
+                    });
 
-                        $message = "Moderate conservation around motif " . $m['name'] . ".";
-                        if ($avg >= 0.9) {
-                            $message = "High-confidence site: motif " . $m['name'] . " lies in a strongly conserved region (score " . $avg . ").";
-                        } elseif ($avg < 0.5) {
-                            $message = "This motif lies in a weakly conserved region (score " . $avg . "), which may indicate higher structural flexibility.";
-                        }
-
-                        $motif_reports[] = [
-                            'name' => $m['name'],
-                            'start' => $m['start'],
-                            'end' => $m['end'],
-                            'avg_score' => $avg,
-                            'message' => $message
-                        ];
+                    if (!empty($motif_reports)) {
+                        $confidence_site = $motif_reports[0];
                     }
                 }
             }
@@ -178,7 +258,7 @@ if ($accession) {
         </div>
 
         <?php if (!empty($residue_scores)): ?>
-            <h3>Conservation and Motif Overview</h3>
+            <h3>BLOSUM62 Conservation and Motif Overview</h3>
             <div style="background:#ffffff; padding:12px; border-radius:6px;">
                 <canvas id="combinedChart" height="140"></canvas>
             </div>
@@ -188,7 +268,7 @@ if ($accession) {
         <p>Hover over the block to view details</p>
         <div class="motif-bar-container">
             <?php
-            $seq_len = $protein_info['seq_length'];
+            $seq_len = max(1, intval($protein_info['seq_length']));
             foreach ($results as $m):
                 $left = ($m['start'] / $seq_len) * 100;
                 $width = (($m['end'] - $m['start'] + 1) / $seq_len) * 100;
@@ -210,10 +290,12 @@ if ($accession) {
 
         <h3>Functional Insights</h3>
 
-        <?php if (!empty($results)): ?>
-            <p>1. High-confidence site: detected motif <?= htmlspecialchars($results[0]['name']) ?> with strong conservation → candidate functional hotspot.</p>
-            <p>2. Evolution insight: motif conserved across species suggests essential biological role.</p>
-            <p>3. Structural hint: regions with low conservation may indicate flexible loops.</p>
+        <?php if (!empty($confidence_site)): ?>
+            <p>1. Confidence site: <?= htmlspecialchars($confidence_site['name']) ?> at <?= htmlspecialchars((string)$confidence_site['start']) ?>-<?= htmlspecialchars((string)$confidence_site['end']) ?> with weighted score <?= htmlspecialchars((string)$confidence_site['weighted_score']) ?> (<?= htmlspecialchars($confidence_site['confidence']) ?> confidence).</p>
+            <p>2. Selection logic: motif ranking combines BLOSUM62-based residue conservation, motif length / specificity, and a penalty for frequent PROSITE patterns.</p>
+            <p>3. Interpretation: conservation-supported motifs are prioritized over isolated short pattern matches.</p>
+        <?php elseif (!empty($results)): ?>
+            <p>1. Pattern hits were detected, but a confidence site could not be ranked because residue-level BLOSUM conservation scores were unavailable.</p>
         <?php endif; ?>
 
         <?php if (!empty($motif_reports)): ?>
@@ -224,7 +306,11 @@ if ($accession) {
                         <th>Motif</th>
                         <th>Start</th>
                         <th>End</th>
-                        <th>Average Conservation</th>
+                        <th>Avg BLOSUM</th>
+                        <th>Min BLOSUM</th>
+                        <th>High-score Fraction</th>
+                        <th>Weighted Score</th>
+                        <th>Confidence</th>
                         <th>Interpretation</th>
                     </tr>
                 </thead>
@@ -235,13 +321,17 @@ if ($accession) {
                             <td><?= htmlspecialchars((string)$r['start']) ?></td>
                             <td><?= htmlspecialchars((string)$r['end']) ?></td>
                             <td><?= htmlspecialchars((string)$r['avg_score']) ?></td>
+                            <td><?= htmlspecialchars((string)$r['min_score']) ?></td>
+                            <td><?= htmlspecialchars((string)$r['high_fraction']) ?></td>
+                            <td><?= htmlspecialchars((string)$r['weighted_score']) ?></td>
+                            <td><?= htmlspecialchars($r['confidence']) ?></td>
                             <td><?= htmlspecialchars($r['message']) ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         <?php endif; ?>
-        
+
         <h3>Detected Motifs</h3>
         <table class="result-table">
             <thead>
@@ -260,12 +350,18 @@ if ($accession) {
                 <?php else: ?>
                     <?php foreach ($results as $m): ?>
                         <tr>
-                            <td><a href="https://prosite.expasy.org/<?= $m['accession'] ?>" target="_blank"><?= $m['accession'] ?></a></td>
+                            <td>
+                                <?php if (is_official_prosite_accession($m['accession'] ?? '')): ?>
+                                    <a href="https://prosite.expasy.org/<?= rawurlencode($m['accession']) ?>" target="_blank" rel="noopener noreferrer"><?= htmlspecialchars($m['accession']) ?></a>
+                                <?php else: ?>
+                                    <?= htmlspecialchars($m['accession']) ?>
+                                <?php endif; ?>
+                            </td>
                             <td><?= htmlspecialchars($m['name']) ?></td>
                             <td><?= htmlspecialchars($m['description']) ?></td>
-                            <td><?= $m['start'] ?></td>
-                            <td><?= $m['end'] ?></td>
-                            <td style="font-family: monospace; font-weight: bold; color: #d62728;"><?= $m['match'] ?></td>
+                            <td><?= htmlspecialchars((string)$m['start']) ?></td>
+                            <td><?= htmlspecialchars((string)$m['end']) ?></td>
+                            <td style="font-family: monospace; font-weight: bold; color: #d62728;"><?= htmlspecialchars($m['match']) ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -319,7 +415,7 @@ if ($accession) {
             data: {
                 labels: combinedLabels,
                 datasets: [{
-                    label: 'Conservation score',
+                    label: 'BLOSUM62 conservation score',
                     data: combinedScores,
                     tension: 0.2,
                     pointRadius: 0
@@ -339,7 +435,7 @@ if ($accession) {
                         max: 1,
                         title: {
                             display: true,
-                            text: 'Score'
+                            text: 'Normalized BLOSUM score'
                         }
                     },
                     x: {

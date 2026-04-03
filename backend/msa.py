@@ -2,22 +2,69 @@
 
 import sys
 import subprocess
-import os
 import tempfile
 import json
+import itertools
 from Bio import AlignIO
+from Bio.Align import substitution_matrices
 
 if len(sys.argv) < 2:
     print("Error: No input file")
     sys.exit(1)
 
 input_fasta = sys.argv[1]
-
-# 创建临时输出文件
 output_file = tempfile.NamedTemporaryFile(delete=False, suffix=".aln").name
 
+
+def compute_blosum62_scores(alignment_path):
+    aln = AlignIO.read(alignment_path, "clustal")
+    matrix = substitution_matrices.load("BLOSUM62")
+    alphabet = set(str(matrix.alphabet))
+
+    matrix_values = []
+    for a in alphabet:
+        for b in alphabet:
+            try:
+                matrix_values.append(float(matrix[a, b]))
+            except Exception:
+                continue
+
+    if not matrix_values:
+        return []
+
+    matrix_min = min(matrix_values)
+    matrix_max = max(matrix_values)
+    denom = matrix_max - matrix_min if matrix_max != matrix_min else 1.0
+
+    scores = []
+    aln_len = aln.get_alignment_length()
+
+    for i in range(aln_len):
+        column = aln[:, i]
+        residues = [aa for aa in column if aa != '-' and aa in alphabet]
+
+        if len(residues) < 2:
+            scores.append(0.0)
+            continue
+
+        pair_scores = []
+        for a, b in itertools.combinations(residues, 2):
+            try:
+                raw = float(matrix[a, b])
+                normalized = (raw - matrix_min) / denom
+                pair_scores.append(normalized)
+            except Exception:
+                continue
+
+        if not pair_scores:
+            scores.append(0.0)
+        else:
+            scores.append(round(sum(pair_scores) / len(pair_scores), 3))
+
+    return scores
+
+
 try:
-    # 调用 Clustal Omega
     cmd = [
         "clustalo",
         "-i", input_fasta,
@@ -25,41 +72,18 @@ try:
         "--force",
         "--outfmt=clu"
     ]
-
     subprocess.run(cmd, check=True)
 
-    # 读取结果
     with open(output_file, "r") as f:
         alignment = f.read()
 
-    # 保持现有功能：先输出 alignment 文本
     print(alignment)
 
-    # 新增：计算 conservation score
-    scores = []
     try:
-        aln = AlignIO.read(output_file, "clustal")
-        aln_len = aln.get_alignment_length()
-
-        for i in range(aln_len):
-            column = aln[:, i]
-            counts = {}
-            valid = 0
-
-            for aa in column:
-                if aa != '-':
-                    counts[aa] = counts.get(aa, 0) + 1
-                    valid += 1
-
-            if valid == 0:
-                scores.append(0.0)
-            else:
-                max_freq = max(counts.values())
-                scores.append(round(max_freq / valid, 3))
+        scores = compute_blosum62_scores(output_file)
     except Exception:
         scores = []
 
-    # 用标记包起来，方便 PHP 提取，不会破坏你现有 alignment 渲染
     print("###SCORES_JSON_START###")
     print(json.dumps(scores))
     print("###SCORES_JSON_END###")
