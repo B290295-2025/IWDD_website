@@ -16,7 +16,7 @@ include __DIR__ . '/../layout.php';
     <h3>Overview</h3>
     <div class="card">
         <p>
-            This website enables users to search for user-defined taxa and specific protein sets, retrieve protein sequences, perform conservation analyses and conduct further searches, thereby providing deeper insights into the core functions and evolution of proteins.
+            This website enables users to search for user-defined taxa and specific protein sets, retrieve protein sequences, perform conservation analyses and conduct further motif scan research, thereby providing deeper insights into the core functions and evolution of proteins.
         </p>
     </div>
 
@@ -30,7 +30,7 @@ include __DIR__ . '/../layout.php';
     <h3>Multiple Sequence Alignment (MSA)</h3>
     <div class="card">
         <p>
-            MSA aligns sequences to enable direct comparison of amino acid sites and, through the intuitive display of conservation scores, identifies conserved regions, insertions and deletions. These conserved regions typically play a significant role in structural stability and biological function.
+            MSA aligns sequences to enable direct comparison of amino acid sites and, through the display of BLOSUM62 conservation scores, identifies conserved regions, insertions and deletions. These conserved regions typically play a significant role in structural stability and biological function.
         </p>
     </div>
 

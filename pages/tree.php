@@ -7,7 +7,7 @@ $conn = new PDO(
     "YuQ1LiN030709!",
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
 );
-
+# define parameter and download variable name
 $newick = '';
 $tree_png_base64 = '';
 $error = '';

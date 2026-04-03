@@ -47,7 +47,7 @@ function build_msa_report($scores, $seq_count) {
             'sequence_count' => $seq_count,
             'average_score' => 0,
             'high_sites' => 0,
-            'message' => 'Conservation score is not available for this alignment.'
+            'message' => 'BLOSUM62 conservation score is not available for this alignment.'
         ];
     }
 
@@ -55,16 +55,16 @@ function build_msa_report($scores, $seq_count) {
     $high_sites = 0;
 
     foreach ($scores as $s) {
-        if ($s >= 0.9) {
+        if ($s >= 0.8) {
             $high_sites++;
         }
     }
 
-    $message = 'Moderate sequence conservation detected.';
-    if ($avg >= 0.85) {
-        $message = 'Strong overall conservation detected across the alignment.';
-    } elseif ($avg < 0.5) {
-        $message = 'The selected sequences are relatively divergent.';
+    $message = 'Moderate BLOSUM62-supported conservation detected across the alignment.';
+    if ($avg >= 0.75) {
+        $message = 'Strong BLOSUM62-supported conservation detected across the alignment.';
+    } elseif ($avg < 0.45) {
+        $message = 'The selected sequences are relatively divergent under the BLOSUM62-based conservation metric.';
     }
 
     return [
@@ -183,6 +183,114 @@ function residue_scores_from_alignment($aligned_target, $column_scores) {
     return $residue_scores;
 }
 
+function is_official_prosite_accession($acc) {
+    return is_string($acc) && preg_match('/^PS\d{5}$/', $acc);
+}
+
+function is_frequent_pattern($acc) {
+    $frequent = [
+        'PS00001',
+        'PS00004',
+        'PS00005',
+        'PS00006',
+        'PS00008',
+        'PS00009',
+        'PS00017'
+    ];
+
+    return in_array($acc, $frequent, true);
+}
+
+function build_motif_confidence_report($motif, $residue_scores) {
+    $start = max(1, intval($motif['start'] ?? 0));
+    $end = min(count($residue_scores), intval($motif['end'] ?? 0));
+    $segment = [];
+
+    if ($end >= $start && !empty($residue_scores)) {
+        $segment = array_slice($residue_scores, $start - 1, $end - $start + 1);
+    }
+
+    $avg = 0.0;
+    $min_score = 0.0;
+    $high_count = 0;
+    $high_fraction = 0.0;
+    $motif_length = max(1, $end - $start + 1);
+
+    if (!empty($segment)) {
+        $avg = round(array_sum($segment) / count($segment), 3);
+        $min_score = round(min($segment), 3);
+        foreach ($segment as $s) {
+            if ($s >= 0.8) {
+                $high_count++;
+            }
+        }
+        $high_fraction = round($high_count / count($segment), 3);
+    }
+
+    $accession = $motif['accession'] ?? '';
+    $official = is_official_prosite_accession($accession);
+    $frequent = is_frequent_pattern($accession);
+
+    $authority_factor = 0.55;
+    if ($official && !$frequent) {
+        $authority_factor = 1.0;
+    } elseif ($official && $frequent) {
+        $authority_factor = 0.7;
+    }
+
+    $specificity_factor = min(1.0, 0.45 + (min($motif_length, 12) / 20.0));
+    $conservation_support = round((0.6 * $avg) + (0.25 * $min_score) + (0.15 * $high_fraction), 3);
+    $weighted_score = round(100 * $conservation_support * $authority_factor * $specificity_factor, 2);
+
+    $confidence = 'low';
+    $message = 'Low-support motif hit. Consider it tentative unless backed by stronger conservation or external evidence.';
+
+    if ($official && !$frequent && $weighted_score >= 75 && $avg >= 0.75 && $min_score >= 0.45) {
+        $confidence = 'high';
+        $message = "High-confidence site: official PROSITE motif with strong BLOSUM-supported conservation (weighted score {$weighted_score}).";
+    } elseif ($official && $weighted_score >= 55) {
+        $confidence = 'medium';
+        $message = "Moderate-confidence site: official PROSITE motif with moderate BLOSUM conservation support (weighted score {$weighted_score}).";
+    } elseif ($official && $frequent) {
+        $confidence = 'supporting';
+        $message = "Supporting evidence only: frequent PROSITE pattern down-weighted to reduce over-calling (weighted score {$weighted_score}).";
+    } elseif (!$official) {
+        $confidence = 'custom';
+        $message = "Custom project motif: informative for your dataset, but not an official PROSITE assignment (weighted score {$weighted_score}).";
+    }
+
+    return [
+        'accession' => $accession,
+        'name' => $motif['name'] ?? '',
+        'start' => $motif['start'] ?? 0,
+        'end' => $motif['end'] ?? 0,
+        'avg_score' => $avg,
+        'min_score' => $min_score,
+        'high_fraction' => $high_fraction,
+        'motif_length' => $motif_length,
+        'conservation_support' => $conservation_support,
+        'weighted_score' => $weighted_score,
+        'confidence' => $confidence,
+        'message' => $message
+    ];
+}
+
+function sort_motif_reports_by_weight(&$motif_reports) {
+    usort($motif_reports, function ($a, $b) {
+        return ($b['weighted_score'] ?? 0) <=> ($a['weighted_score'] ?? 0);
+    });
+}
+
+function pick_confidence_site($motif_reports) {
+    if (empty($motif_reports) || !is_array($motif_reports)) {
+        return null;
+    }
+
+    $sorted = $motif_reports;
+    sort_motif_reports_by_weight($sorted);
+    return $sorted[0] ?? null;
+}
+
 function build_summary_report($rows, $msa_report, $motif_counts) {
     $seq_lengths = [];
     foreach ($rows as $row) {
@@ -192,7 +300,6 @@ function build_summary_report($rows, $msa_report, $motif_counts) {
     $min_len = !empty($seq_lengths) ? min($seq_lengths) : 0;
     $max_len = !empty($seq_lengths) ? max($seq_lengths) : 0;
     $avg_len = !empty($seq_lengths) ? round(array_sum($seq_lengths) / count($seq_lengths), 2) : 0;
-
     $total_motifs = array_sum($motif_counts);
 
     return [

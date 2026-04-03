@@ -1,4 +1,6 @@
+
 <?php
+//connect to sql by using PDO
 $dsn = "mysql:host=127.0.0.1;dbname=s2845297_website;charset=utf8mb4";
 $user = "s2845297";
 $pass = "YuQ1LiN030709!";
@@ -11,13 +13,14 @@ try {
 } catch (PDOException $e) {
     die("Connection failed: " . $e->getMessage());
 }
-
+# define parameter
 $results = [];
 $protein_info = null;
 $residue_scores = [];
 $motif_reports = [];
 $confidence_site = null;
 
+# define function and process the score get from msa conservation BLOSUM62
 function split_alignment_and_scores_local($raw) {
     $scores = [];
     $alignment = $raw;
@@ -120,7 +123,7 @@ function build_motif_confidence_report($motif, $residue_scores) {
     $specificity_factor = min(1.0, 0.45 + (min($motif_length, 12) / 20.0));
     $conservation_support = round((0.6 * $avg) + (0.25 * $min_score) + (0.15 * $high_fraction), 3);
     $weighted_score = round(100 * $conservation_support * $authority_factor * $specificity_factor, 2);
-
+# define the score weighted and threshold
     $confidence = 'low';
     $message = "Low-support motif hit. Consider it tentative unless backed by stronger conservation or external evidence.";
 
@@ -300,7 +303,7 @@ if ($accession) {
 
         <?php if (!empty($motif_reports)): ?>
             <h3>Conservation-linked Report</h3>
-            <table class="result-table">
+            <table class="result-table motif-score-table">
                 <thead>
                     <tr>
                         <th>Motif</th>

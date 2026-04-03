@@ -1,7 +1,5 @@
 <?php
-// ---------------------------
-// PDO 连接
-// ---------------------------
+// use PDO connecting to mysql
 $dsn = "mysql:host=127.0.0.1;dbname=s2845297_website;charset=utf8mb4";
 $user = "s2845297";
 $pass = "YuQ1LiN030709!";
@@ -144,9 +142,7 @@ if (!empty($selected_ids)) {
     ]);
 }
 
-// ---------------------------
-// 可视化函数（原样保留）
-// ---------------------------
+// MSA visulization function
 function render_msa_html($msa) {
 
     $lines = explode("\n", $msa);
@@ -232,7 +228,7 @@ function render_msa_html($msa) {
     return $html;
 }
 
-// 下载
+// allow to download the msa alignment file in .aln format
 if (isset($_GET['download'])) {
     $file = "/tmp/" . basename($_GET['download']);
 

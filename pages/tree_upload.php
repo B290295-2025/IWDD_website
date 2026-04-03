@@ -4,7 +4,7 @@ $newick = '';
 $tree_png_base64 = '';
 $error = '';
 $download_png_file = '';
-
+#allow user to download the result phylogenetic tree image
 if (isset($_GET['download_png'])) {
     $file = "/tmp/" . basename($_GET['download_png']);
 
