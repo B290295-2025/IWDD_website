@@ -9,12 +9,11 @@
 
         <a href="/~s2845297/B290295_website/pages/tree_upload.php">Phylogenetic Tree</a>
 
-        <a href="/~s2845297/B290295_website/pages/protein_query.php">View 3D structure</a>
 
 	<a href="/~s2845297/B290295_website/pages/history.php">History</a>
     </div>
     <div class="right">
-    	<a href="/~s2845297/B290295_website/pages/examples.php">Example</a>
+    	<a href="/~s2845297/B290295_website/pages/example.php">Example</a>
     	<a href="/~s2845297/B290295_website/pages/credits_statement.php">Credit Statement</a>
     	<a href="/~s2845297/B290295_website/pages/help.php">Help/Context</a>
     	<a href="/~s2845297/B290295_website/pages/about.php">About</a>

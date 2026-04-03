@@ -25,6 +25,8 @@ function http_request($url, $method = 'GET', $post_fields = null, $headers = [])
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 
     if ($method === 'POST') {
         curl_setopt($ch, CURLOPT_POST, true);
@@ -66,7 +68,7 @@ function submit_uniprot_mapping_job($accession_id) {
         ['Content-Type: application/x-www-form-urlencoded']
     );
 
-    if (!empty($response['error']) || empty($response['body'])) {
+    if (!empty($response['error']) || empty($response['body']) || $response['http_code'] >= 400) {
         return [null, "Failed to connect to UniProt mapping service."];
     }
 
@@ -86,14 +88,14 @@ function fetch_uniprot_results($job_id) {
     for ($i = 0; $i < 15; $i++) {
         $status_response = http_request($status_url);
 
-        if (!empty($status_response['body'])) {
+        if (!empty($status_response['body']) && $status_response['http_code'] < 400) {
             $status_json = json_decode($status_response['body'], true);
 
             if (is_array($status_json)) {
                 if (isset($status_json['results']) || isset($status_json['failedIds'])) {
                     $results_response = http_request($results_url);
 
-                    if (!empty($results_response['body'])) {
+                    if (!empty($results_response['body']) && $results_response['http_code'] < 400) {
                         $results_json = json_decode($results_response['body'], true);
                         if (is_array($results_json)) {
                             return [$results_json, null];
@@ -180,7 +182,7 @@ function fetch_alphafold_entry_id($uniprot_accession) {
     $url = "https://alphafold.ebi.ac.uk/api/prediction/" . rawurlencode($uniprot_accession);
     $response = http_request($url);
 
-    if (!empty($response['error']) || empty($response['body'])) {
+    if (!empty($response['error']) || empty($response['body']) || $response['http_code'] >= 400) {
         return ['', "Failed to connect to AlphaFold API."];
     }
 
@@ -201,13 +203,27 @@ function fetch_alphafold_entry_id($uniprot_accession) {
     return ['', "AlphaFold entry ID was not found."];
 }
 
+function clean_protein_sequence($sequence) {
+    $sequence = strtoupper(trim($sequence));
+    $sequence = preg_replace('/[^A-Z]/', '', $sequence);
+    return $sequence;
+}
+
+function is_valid_alphafold_sequence($sequence) {
+    if ($sequence === '' || strlen($sequence) < 20) {
+        return false;
+    }
+
+    return preg_match('/^[ACDEFGHIKLMNPQRSTVWY]+$/', $sequence) === 1;
+}
+
 if (count($selected_ids) !== 1) {
     $error = "Please select exactly 1 protein to view 3D structure.";
 } else {
     $accession_id = $selected_ids[0];
 
     $stmt = $conn->prepare(
-        "SELECT accession_id, description, taxon_group, protein_name
+        "SELECT accession_id, description, taxon_group, protein_name, sequence
          FROM protein_data
          WHERE accession_id = ?"
     );
@@ -219,21 +235,29 @@ if (count($selected_ids) !== 1) {
     } else {
         list($uniprot_accession, $map_error) = map_ncbi_to_uniprot($row['accession_id']);
 
-        if ($map_error || $uniprot_accession === '') {
-            $error = $map_error ?: "UniProt mapping failed.";
-        } else {
+        if ($uniprot_accession !== '') {
             list($entry_id, $af_error) = fetch_alphafold_entry_id($uniprot_accession);
 
-            if ($af_error || $entry_id === '') {
-                $fallback_url = "https://alphafold.ebi.ac.uk/search/text/" . rawurlencode($uniprot_accession);
-                header("Location: " . $fallback_url);
-                exit;
-            } else {
+            if ($entry_id !== '') {
                 $alphafold_url = "https://alphafold.ebi.ac.uk/entry/" . rawurlencode($entry_id);
                 header("Location: " . $alphafold_url);
                 exit;
             }
+
+            $fallback_uniprot_search_url = "https://alphafold.ebi.ac.uk/search/text/" . rawurlencode($uniprot_accession);
+            header("Location: " . $fallback_uniprot_search_url);
+            exit;
         }
+
+        $sequence = clean_protein_sequence($row['sequence'] ?? '');
+
+        if (is_valid_alphafold_sequence($sequence)) {
+            $sequence_search_url = "https://alphafold.ebi.ac.uk/search/text/" . rawurlencode($sequence);
+            header("Location: " . $sequence_search_url);
+            exit;
+        }
+
+        $error = "UniProt mapping failed, and the protein sequence is not suitable for AlphaFold sequence search.";
     }
 }
 ?>

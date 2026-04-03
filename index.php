@@ -19,7 +19,7 @@
         <div class="card">
             <div class="card-icon"></div>
             <h3>Protein Query</h3>
-            <p>Search NCBI or paste sequences to begin your workflow.</p>
+            <p>Search proteins in NCBI to begin your workflow.</p>
             <a href="pages/protein_query.php" class="enter-button">Enter</a>
         </div>
 
@@ -44,9 +44,9 @@
         </div>
 
         <div class="card">
-            <h3> View 3D Structure</h3>
-            <p>Visualize 3D structure in AlphaFold</p>
-            <a href="pages/protein_query.php" class="enter-button">Enter</a>
+            <h3> View Example</h3>
+            <p>Provide a Example for how to use this website</p>
+            <a href="pages/example.php" class="enter-button">Enter</a>
         </div>
 
 
