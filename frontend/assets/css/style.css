@@ -416,7 +416,7 @@ input[type="text"]:focus {
     box-shadow: 0 4px 15px rgba(0,0,0,0.4);
 }
 
-/* 4. 
+/* 4.*/ 
 .motif-track::after {
     content: attr(data-tooltip); /* acquire the txt from php */
     position: absolute;
@@ -478,7 +478,6 @@ input[type="text"]:focus {
     white-space: normal;
 }
 
-/* 让 Start / End 这种短列自然保持较窄 */
 .motif-score-table th:nth-child(2),
 .motif-score-table td:nth-child(2),
 .motif-score-table th:nth-child(3),
@@ -486,14 +485,12 @@ input[type="text"]:focus {
     white-space: nowrap;
 }
 
-/* Motif 列保持正常换行，不要被拆成奇怪的碎片 */
 .motif-score-table th:nth-child(1),
 .motif-score-table td:nth-child(1) {
     word-break: normal;
     overflow-wrap: break-word;
 }
 
-/* Interpretation 列按正常单词边界换行 */
 .motif-score-table th:last-child,
 .motif-score-table td:last-child {
     word-break: normal;
